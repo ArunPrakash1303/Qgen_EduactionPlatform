@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 import { ROLES } from '../config/roles';
 import { showSnack } from '../utils/toast';
+import QgenLogo from '../assets/QgenLogo.png';
 
 function Login({ onLogin, isDark, toggleTheme }) {
   const [role, setRole] = useState('Admin');
@@ -36,7 +37,7 @@ function Login({ onLogin, isDark, toggleTheme }) {
     >
       <div className="login-left">
         <motion.div className="login-brand-icon" initial={{ scale: 0 }} animate={{ scale: 1 }} transition={{ delay: 0.2 }}>
-          <img src="./src/assets/QgenLogo.png" alt="QGen Logo" style={{ width: '380px', height: 'auto', objectFit: 'contain' }} />
+          <img src={QgenLogo} alt="QGen Logo" style={{ width: '380px', height: 'auto', objectFit: 'contain' }} />
         </motion.div>
         <div className="login-brand-name" style={{ display: 'none' }}>
           <span className="q" style={{ color: isDark ? '#3AB54A' : '#fff' }}>Q</span>
