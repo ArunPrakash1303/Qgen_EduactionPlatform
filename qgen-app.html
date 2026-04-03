@@ -1,0 +1,1533 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Qgen – Question Paper Generator & Exam Scheduler</title>
+<link href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.2/css/bootstrap.min.css" rel="stylesheet"/>
+<link href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-icons/1.11.3/font/bootstrap-icons.min.css" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet"/>
+<style>
+:root {
+  --primary: #1B3A6B;
+  --primary-dark: #122952;
+  --accent: #3AB54A;
+  --accent-dark: #2a8f38;
+  --yellow: #F5C518;
+  --yellow-dark: #d4a817;
+  --bg: #F4F6FA;
+  --surface: #FFFFFF;
+  --surface2: #EEF1F8;
+  --border: #DDE2EE;
+  --text: #1A1F36;
+  --text2: #5A6278;
+  --text3: #8A93A8;
+  --shadow: 0 2px 12px rgba(27,58,107,0.08);
+  --shadow-lg: 0 8px 32px rgba(27,58,107,0.12);
+  --radius: 12px;
+  --sidebar-w: 260px;
+  --navbar-h: 64px;
+  --transition: 0.25s cubic-bezier(.4,0,.2,1);
+}
+[data-theme="dark"] {
+  --primary: #3AB54A;
+  --primary-dark: #2a8f38;
+  --accent: #F5C518;
+  --accent-dark: #d4a817;
+  --yellow: #3AB54A;
+  --bg: #0D1117;
+  --surface: #161B22;
+  --surface2: #1C2230;
+  --border: #2A3042;
+  --text: #E8EAF0;
+  --text2: #9BA3BB;
+  --text3: #6B7590;
+  --shadow: 0 2px 12px rgba(0,0,0,0.3);
+  --shadow-lg: 0 8px 32px rgba(0,0,0,0.4);
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: 'DM Sans', sans-serif; background: var(--bg); color: var(--text); transition: background var(--transition), color var(--transition); font-size: 14px; }
+h1,h2,h3,h4,h5,h6 { font-family: 'Outfit', sans-serif; }
+
+/* ─── PAGE LOADER ─── */
+#page-loader {
+  position: fixed; inset: 0; z-index: 9999;
+  background: var(--surface);
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  gap: 28px;
+}
+.loader-logo { display: flex; align-items: center; gap: 14px; animation: loaderFadeIn 0.6s ease forwards; }
+.loader-logo-icon { width: 64px; height: 64px; position: relative; }
+.loader-book { width: 48px; height: 40px; border: 3px solid var(--primary); border-radius: 2px 8px 8px 2px; position: absolute; bottom: 0; left: 4px; background: var(--surface2); animation: bookOpen 1.2s ease-in-out infinite alternate; }
+.loader-book::after { content:''; position:absolute; top:4px; left:6px; right:6px; height:2px; background:var(--border); box-shadow: 0 6px 0 var(--border), 0 12px 0 var(--border); }
+.loader-bulb { font-size: 24px; position: absolute; top: 0; left: 50%; transform: translateX(-50%); animation: bulbPulse 1s ease-in-out infinite alternate; }
+.loader-title { font-family: 'Outfit',sans-serif; font-size: 2rem; font-weight: 800; }
+.loader-title .q { color: var(--primary); }
+.loader-title .gen { color: var(--accent); }
+.loader-subtitle { font-size: 0.75rem; color: var(--text3); letter-spacing: 2px; text-transform: uppercase; margin-top: -20px; }
+.loader-progress { width: 200px; height: 3px; background: var(--border); border-radius: 99px; overflow: hidden; }
+.loader-progress-bar { height: 100%; background: var(--accent); border-radius: 99px; animation: loaderProgress 2s cubic-bezier(.4,0,.2,1) forwards; }
+.loader-dots { display: flex; gap: 6px; }
+.loader-dots span { width: 6px; height: 6px; border-radius: 50%; background: var(--accent); animation: dotBounce 0.8s ease-in-out infinite; }
+.loader-dots span:nth-child(2) { animation-delay: 0.15s; background: var(--primary); }
+.loader-dots span:nth-child(3) { animation-delay: 0.3s; background: var(--yellow); }
+.loader-paper { position: absolute; width: 28px; height: 36px; border: 2px solid var(--accent); border-radius: 3px; animation: paperFloat 2s ease-in-out infinite; opacity: 0.3; }
+.loader-paper:nth-child(1) { top: 15%; left: 15%; animation-delay: 0s; }
+.loader-paper:nth-child(2) { top: 20%; right: 20%; animation-delay: 0.5s; }
+.loader-paper:nth-child(3) { bottom: 20%; left: 25%; animation-delay: 1s; }
+.loader-paper::after { content:''; position:absolute; top:5px; left:4px; right:4px; height:1.5px; background: var(--accent); box-shadow: 0 5px 0 var(--accent), 0 10px 0 var(--accent); opacity: 0.5; }
+
+@keyframes loaderFadeIn { from { opacity:0; transform:translateY(20px); } to { opacity:1; transform:translateY(0); } }
+@keyframes loaderProgress { from { width:0; } to { width:100%; } }
+@keyframes dotBounce { 0%,100% { transform:translateY(0); } 50% { transform:translateY(-6px); } }
+@keyframes bulbPulse { 0% { filter:brightness(0.7) drop-shadow(0 0 2px var(--yellow)); } 100% { filter:brightness(1.3) drop-shadow(0 0 8px var(--yellow)); } }
+@keyframes bookOpen { 0% { transform:scaleX(0.8); } 100% { transform:scaleX(1); } }
+@keyframes paperFloat { 0%,100% { transform:translateY(0) rotate(-5deg); } 50% { transform:translateY(-12px) rotate(5deg); } }
+
+/* ─── LAYOUT ─── */
+.app-container { display: flex; min-height: 100vh; }
+.sidebar {
+  width: var(--sidebar-w); min-height: 100vh; background: var(--surface);
+  border-right: 1px solid var(--border); position: fixed; top: 0; left: 0; z-index: 100;
+  display: flex; flex-direction: column; transition: width var(--transition), transform var(--transition);
+  box-shadow: var(--shadow);
+}
+.sidebar.collapsed { width: 68px; }
+.sidebar.mobile-hidden { transform: translateX(-100%); }
+.sidebar-logo { padding: 18px 20px; border-bottom: 1px solid var(--border); display: flex; align-items: center; gap: 12px; min-height: var(--navbar-h); }
+.sidebar-logo-img { width: 36px; height: 36px; object-fit: contain; flex-shrink: 0; }
+.sidebar-logo-text { font-family: 'Outfit',sans-serif; font-size: 1.3rem; font-weight: 800; white-space: nowrap; overflow: hidden; }
+.sidebar-logo-text .q { color: var(--primary); }
+.sidebar-logo-text .gen { color: var(--accent); }
+.sidebar.collapsed .sidebar-logo-text,
+.sidebar.collapsed .nav-label,
+.sidebar.collapsed .sidebar-section-label { display: none; }
+.sidebar-nav { flex: 1; overflow-y: auto; overflow-x: hidden; padding: 12px 0; }
+.sidebar-nav::-webkit-scrollbar { width: 4px; }
+.sidebar-nav::-webkit-scrollbar-thumb { background: var(--border); border-radius: 99px; }
+.sidebar-section-label { font-size: 0.65rem; font-weight: 700; letter-spacing: 1.5px; text-transform: uppercase; color: var(--text3); padding: 12px 20px 4px; }
+.nav-item-btn {
+  display: flex; align-items: center; gap: 12px; padding: 10px 20px;
+  cursor: pointer; border: none; background: none; width: 100%; text-align: left;
+  color: var(--text2); border-radius: 0; transition: all var(--transition);
+  font-family: 'DM Sans', sans-serif; font-size: 13.5px; font-weight: 500; position: relative;
+}
+.nav-item-btn:hover { background: var(--surface2); color: var(--text); }
+.nav-item-btn.active { background: var(--primary); color: #fff; }
+[data-theme="dark"] .nav-item-btn.active { background: var(--primary); color: var(--bg); }
+.nav-item-btn .nav-icon { font-size: 16px; flex-shrink: 0; width: 20px; text-align: center; }
+.nav-label { white-space: nowrap; overflow: hidden; }
+.sidebar.collapsed .nav-item-btn { justify-content: center; padding: 12px; }
+.sidebar-footer { padding: 16px; border-top: 1px solid var(--border); }
+
+/* ─── TOP NAVBAR ─── */
+.topbar {
+  position: fixed; top: 0; left: var(--sidebar-w); right: 0; height: var(--navbar-h);
+  background: var(--surface); border-bottom: 1px solid var(--border);
+  display: flex; align-items: center; padding: 0 24px; gap: 16px;
+  z-index: 99; transition: left var(--transition); box-shadow: var(--shadow);
+}
+.topbar.collapsed { left: 68px; }
+.sidebar-toggle { background: none; border: none; cursor: pointer; color: var(--text2); font-size: 18px; padding: 6px; border-radius: 8px; transition: background var(--transition); }
+.sidebar-toggle:hover { background: var(--surface2); }
+.topbar-breadcrumb { flex: 1; font-size: 13px; color: var(--text3); }
+.topbar-breadcrumb .current { color: var(--text); font-weight: 600; }
+.topbar-actions { display: flex; align-items: center; gap: 8px; }
+.topbar-btn {
+  background: none; border: none; cursor: pointer; color: var(--text2);
+  font-size: 18px; padding: 8px; border-radius: 8px; transition: all var(--transition); position: relative;
+}
+.topbar-btn:hover { background: var(--surface2); color: var(--text); }
+.badge-dot { position: absolute; top: 6px; right: 6px; width: 7px; height: 7px; border-radius: 50%; background: var(--accent); border: 2px solid var(--surface); }
+.theme-toggle { display: flex; align-items: center; gap: 6px; padding: 6px 12px; border: 1px solid var(--border); border-radius: 8px; cursor: pointer; background: var(--surface2); color: var(--text2); font-size: 12px; font-weight: 600; transition: all var(--transition); font-family: 'DM Sans', sans-serif; }
+.theme-toggle:hover { border-color: var(--primary); color: var(--primary); }
+.avatar { width: 34px; height: 34px; border-radius: 50%; background: var(--primary); color: #fff; display: flex; align-items: center; justify-content: center; font-family: 'Outfit',sans-serif; font-weight: 700; font-size: 13px; cursor: pointer; flex-shrink: 0; }
+[data-theme="dark"] .avatar { background: var(--primary); color: var(--bg); }
+
+/* ─── MAIN CONTENT ─── */
+.main-content {
+  margin-left: var(--sidebar-w); margin-top: var(--navbar-h);
+  padding: 28px; min-height: calc(100vh - var(--navbar-h));
+  transition: margin-left var(--transition);
+}
+.main-content.collapsed { margin-left: 68px; }
+
+/* ─── CARDS ─── */
+.card-custom {
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: var(--radius); box-shadow: var(--shadow);
+  transition: box-shadow var(--transition), transform var(--transition);
+}
+.card-custom:hover { box-shadow: var(--shadow-lg); }
+.stat-card {
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: var(--radius); padding: 20px 22px;
+  display: flex; align-items: center; gap: 16px;
+  transition: all var(--transition); cursor: default;
+}
+.stat-card:hover { transform: translateY(-2px); box-shadow: var(--shadow-lg); }
+.stat-icon { width: 48px; height: 48px; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 20px; flex-shrink: 0; }
+.stat-icon.blue { background: #EBF0FB; color: var(--primary); }
+.stat-icon.green { background: #EAF6EC; color: var(--accent); }
+.stat-icon.yellow { background: #FEF8E6; color: var(--yellow-dark); }
+.stat-icon.red { background: #FDEDED; color: #E53935; }
+[data-theme="dark"] .stat-icon.blue { background: #1B2A40; }
+[data-theme="dark"] .stat-icon.green { background: #1A2E1E; }
+[data-theme="dark"] .stat-icon.yellow { background: #2A2510; }
+[data-theme="dark"] .stat-icon.red { background: #2A1515; }
+.stat-val { font-family: 'Outfit',sans-serif; font-size: 1.6rem; font-weight: 800; line-height: 1; }
+.stat-label { font-size: 12px; color: var(--text3); margin-top: 3px; }
+.stat-change { font-size: 11px; font-weight: 600; }
+.stat-change.up { color: var(--accent); }
+.stat-change.down { color: #E53935; }
+
+/* ─── PAGE HEADER ─── */
+.page-header { margin-bottom: 28px; }
+.page-title { font-family: 'Outfit',sans-serif; font-size: 1.5rem; font-weight: 700; color: var(--text); }
+.page-subtitle { font-size: 13px; color: var(--text3); margin-top: 2px; }
+
+/* ─── BUTTONS ─── */
+.btn-primary-custom {
+  background: var(--primary); color: #fff; border: none;
+  padding: 10px 20px; border-radius: 8px; font-family: 'DM Sans',sans-serif;
+  font-weight: 600; font-size: 13px; cursor: pointer; display: inline-flex;
+  align-items: center; gap: 7px; transition: all var(--transition);
+}
+.btn-primary-custom:hover { background: var(--primary-dark); transform: translateY(-1px); box-shadow: 0 4px 12px rgba(27,58,107,0.25); }
+[data-theme="dark"] .btn-primary-custom { background: var(--primary); color: var(--bg); }
+.btn-accent-custom {
+  background: var(--accent); color: #fff; border: none;
+  padding: 10px 20px; border-radius: 8px; font-family: 'DM Sans',sans-serif;
+  font-weight: 600; font-size: 13px; cursor: pointer; display: inline-flex;
+  align-items: center; gap: 7px; transition: all var(--transition);
+}
+.btn-accent-custom:hover { background: var(--accent-dark); transform: translateY(-1px); }
+.btn-outline-custom {
+  background: none; border: 1px solid var(--border); color: var(--text2);
+  padding: 9px 18px; border-radius: 8px; font-family: 'DM Sans',sans-serif;
+  font-weight: 600; font-size: 13px; cursor: pointer; display: inline-flex;
+  align-items: center; gap: 7px; transition: all var(--transition);
+}
+.btn-outline-custom:hover { border-color: var(--primary); color: var(--primary); background: var(--surface2); }
+
+/* ─── FORM ELEMENTS ─── */
+.form-control-custom {
+  width: 100%; padding: 10px 14px; border: 1px solid var(--border);
+  border-radius: 8px; background: var(--surface); color: var(--text);
+  font-family: 'DM Sans',sans-serif; font-size: 13.5px;
+  transition: border-color var(--transition), box-shadow var(--transition);
+  outline: none;
+}
+.form-control-custom:focus { border-color: var(--primary); box-shadow: 0 0 0 3px rgba(27,58,107,0.1); }
+[data-theme="dark"] .form-control-custom:focus { box-shadow: 0 0 0 3px rgba(58,181,74,0.1); }
+.form-label-custom { font-size: 12px; font-weight: 600; color: var(--text2); margin-bottom: 6px; display: block; letter-spacing: 0.3px; }
+.form-select-custom {
+  width: 100%; padding: 10px 14px; border: 1px solid var(--border);
+  border-radius: 8px; background: var(--surface); color: var(--text);
+  font-family: 'DM Sans',sans-serif; font-size: 13.5px; appearance: none;
+  cursor: pointer; outline: none; transition: border-color var(--transition);
+}
+.form-select-custom:focus { border-color: var(--primary); box-shadow: 0 0 0 3px rgba(27,58,107,0.1); }
+
+/* ─── TABLE ─── */
+.table-custom { width: 100%; border-collapse: separate; border-spacing: 0; font-size: 13.5px; }
+.table-custom th { font-weight: 600; font-size: 11.5px; text-transform: uppercase; letter-spacing: 0.8px; color: var(--text3); padding: 12px 16px; background: var(--surface2); border-bottom: 1px solid var(--border); }
+.table-custom td { padding: 13px 16px; border-bottom: 1px solid var(--border); color: var(--text); }
+.table-custom tbody tr:hover { background: var(--surface2); }
+.table-custom tbody tr:last-child td { border-bottom: none; }
+
+/* ─── BADGES ─── */
+.badge-custom { display: inline-flex; align-items: center; gap: 4px; padding: 3px 10px; border-radius: 99px; font-size: 11px; font-weight: 700; }
+.badge-green { background: #EAF6EC; color: var(--accent-dark); }
+.badge-red { background: #FDEDED; color: #C62828; }
+.badge-yellow { background: #FEF8E6; color: #9A6F00; }
+.badge-blue { background: #EBF0FB; color: var(--primary); }
+[data-theme="dark"] .badge-green { background: #1A2E1E; color: #5BC86A; }
+[data-theme="dark"] .badge-red { background: #2A1515; color: #EF9A9A; }
+[data-theme="dark"] .badge-yellow { background: #2A2510; color: #FFD54F; }
+[data-theme="dark"] .badge-blue { background: #1B2A40; color: #7EAEE8; }
+
+/* ─── NOTIFICATION DROPDOWN ─── */
+.dropdown-panel {
+  position: absolute; top: calc(100% + 8px); right: 0;
+  width: 320px; background: var(--surface); border: 1px solid var(--border);
+  border-radius: var(--radius); box-shadow: var(--shadow-lg); z-index: 200;
+  display: none;
+}
+.dropdown-panel.show { display: block; animation: dropIn 0.2s ease; }
+@keyframes dropIn { from { opacity:0; transform:translateY(-8px); } to { opacity:1; transform:translateY(0); } }
+.notif-item { padding: 14px 16px; border-bottom: 1px solid var(--border); display: flex; gap: 12px; cursor: pointer; transition: background var(--transition); }
+.notif-item:hover { background: var(--surface2); }
+.notif-item:last-child { border-bottom: none; }
+.notif-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--accent); flex-shrink: 0; margin-top: 5px; }
+.notif-text { font-size: 12.5px; line-height: 1.5; color: var(--text); }
+.notif-time { font-size: 11px; color: var(--text3); margin-top: 2px; }
+
+/* ─── LOGIN PAGE ─── */
+.login-page { min-height: 100vh; display: flex; align-items: stretch; }
+.login-left {
+  flex: 1; background: var(--primary); display: flex; flex-direction: column;
+  align-items: center; justify-content: center; padding: 60px 40px;
+  position: relative; overflow: hidden;
+}
+[data-theme="dark"] .login-left { background: var(--surface); border-right: 1px solid var(--border); }
+.login-left::before {
+  content: ''; position: absolute; width: 300px; height: 300px;
+  border: 60px solid rgba(255,255,255,0.06); border-radius: 50%;
+  top: -80px; right: -80px;
+}
+.login-left::after {
+  content: ''; position: absolute; width: 200px; height: 200px;
+  border: 40px solid rgba(255,255,255,0.04); border-radius: 50%;
+  bottom: 60px; left: -60px;
+}
+.login-brand-icon { font-size: 80px; margin-bottom: 24px; filter: drop-shadow(0 8px 24px rgba(0,0,0,0.2)); }
+.login-brand-name { font-family: 'Outfit',sans-serif; font-size: 3rem; font-weight: 800; color: #fff; }
+[data-theme="dark"] .login-brand-name .q { color: var(--primary); }
+[data-theme="dark"] .login-brand-name .gen { color: var(--accent); }
+.login-brand-tagline { color: rgba(255,255,255,0.7); font-size: 0.95rem; margin-top: 8px; }
+[data-theme="dark"] .login-brand-tagline { color: var(--text3); }
+.login-feature { display: flex; align-items: center; gap: 10px; margin-top: 16px; color: rgba(255,255,255,0.85); font-size: 13.5px; }
+[data-theme="dark"] .login-feature { color: var(--text2); }
+.login-feature i { color: var(--yellow); font-size: 15px; }
+[data-theme="dark"] .login-feature i { color: var(--accent); }
+.login-right { width: 440px; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 48px 40px; background: var(--bg); }
+.login-card { width: 100%; max-width: 380px; }
+.login-title { font-family: 'Outfit',sans-serif; font-size: 1.6rem; font-weight: 700; color: var(--text); margin-bottom: 6px; }
+.login-subtitle { font-size: 13px; color: var(--text3); margin-bottom: 32px; }
+.login-form-group { margin-bottom: 18px; }
+.login-input {
+  width: 100%; padding: 12px 16px 12px 44px; border: 1.5px solid var(--border);
+  border-radius: 10px; background: var(--surface); color: var(--text);
+  font-family: 'DM Sans',sans-serif; font-size: 14px; outline: none;
+  transition: border-color var(--transition), box-shadow var(--transition);
+}
+.login-input:focus { border-color: var(--primary); box-shadow: 0 0 0 3px rgba(27,58,107,0.1); }
+[data-theme="dark"] .login-input:focus { border-color: var(--primary); box-shadow: 0 0 0 3px rgba(58,181,74,0.1); }
+.input-icon-wrap { position: relative; }
+.input-icon-wrap .icon { position: absolute; left: 14px; top: 50%; transform: translateY(-50%); color: var(--text3); font-size: 15px; }
+.login-btn {
+  width: 100%; padding: 13px; background: var(--primary); color: #fff;
+  border: none; border-radius: 10px; font-family: 'Outfit',sans-serif;
+  font-size: 15px; font-weight: 700; cursor: pointer; transition: all var(--transition);
+  display: flex; align-items: center; justify-content: center; gap: 8px;
+}
+.login-btn:hover { background: var(--primary-dark); box-shadow: 0 6px 20px rgba(27,58,107,0.25); transform: translateY(-1px); }
+[data-theme="dark"] .login-btn { background: var(--primary); color: var(--bg); }
+.role-pills { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+.role-pill {
+  padding: 5px 12px; border-radius: 99px; border: 1.5px solid var(--border);
+  font-size: 11.5px; font-weight: 600; cursor: pointer; color: var(--text3);
+  transition: all var(--transition); background: var(--surface);
+}
+.role-pill:hover, .role-pill.selected { border-color: var(--primary); color: var(--primary); background: var(--surface2); }
+[data-theme="dark"] .role-pill:hover, [data-theme="dark"] .role-pill.selected { border-color: var(--primary); color: var(--primary); }
+
+/* ─── WELCOME BANNER ─── */
+.welcome-banner {
+  background: var(--primary); border-radius: var(--radius); padding: 24px 28px;
+  display: flex; align-items: center; justify-content: space-between; margin-bottom: 24px;
+  position: relative; overflow: hidden;
+}
+[data-theme="dark"] .welcome-banner { background: var(--surface); border: 1px solid var(--border); }
+.welcome-banner::after { content:''; position:absolute; right:-40px; top:-40px; width:180px; height:180px; border-radius:50%; background:rgba(255,255,255,0.05); }
+.welcome-text { color: #fff; }
+[data-theme="dark"] .welcome-text { color: var(--text); }
+.welcome-text h2 { font-family: 'Outfit',sans-serif; font-size: 1.4rem; font-weight: 700; }
+.welcome-text p { opacity: 0.8; font-size: 13px; margin-top: 4px; }
+[data-theme="dark"] .welcome-text p { color: var(--text3); opacity: 1; }
+.welcome-icon { font-size: 3rem; opacity: 0.3; }
+
+/* ─── QUICK ACTIONS ─── */
+.quick-action {
+  background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius);
+  padding: 18px 16px; text-align: center; cursor: pointer; transition: all var(--transition);
+  display: flex; flex-direction: column; align-items: center; gap: 10px;
+}
+.quick-action:hover { transform: translateY(-3px); box-shadow: var(--shadow-lg); border-color: var(--primary); }
+.quick-action .qa-icon { width: 44px; height: 44px; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 18px; }
+.quick-action .qa-label { font-size: 12px; font-weight: 600; color: var(--text2); }
+
+/* ─── ACTIVITY ITEM ─── */
+.activity-item { display: flex; gap: 14px; padding: 12px 0; border-bottom: 1px solid var(--border); }
+.activity-item:last-child { border-bottom: none; }
+.activity-avatar { width: 36px; height: 36px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 14px; flex-shrink: 0; }
+.activity-text { font-size: 13px; color: var(--text); line-height: 1.5; }
+.activity-time { font-size: 11px; color: var(--text3); margin-top: 2px; }
+
+/* ─── QUESTION PAPER GENERATOR ─── */
+.upload-zone {
+  border: 2px dashed var(--border); border-radius: var(--radius);
+  padding: 40px; text-align: center; cursor: pointer; transition: all var(--transition);
+  background: var(--surface2);
+}
+.upload-zone:hover { border-color: var(--primary); background: var(--surface); }
+.upload-zone-icon { font-size: 36px; color: var(--text3); margin-bottom: 12px; }
+.upload-zone-text { font-size: 13.5px; color: var(--text2); }
+.upload-zone-hint { font-size: 12px; color: var(--text3); margin-top: 6px; }
+.marks-chip {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 48px; height: 48px; border-radius: 10px; border: 2px solid var(--border);
+  font-weight: 700; font-size: 14px; cursor: pointer; transition: all var(--transition);
+  color: var(--text2); background: var(--surface);
+}
+.marks-chip.selected, .marks-chip:hover { border-color: var(--primary); background: var(--primary); color: #fff; }
+[data-theme="dark"] .marks-chip.selected { background: var(--primary); color: var(--bg); }
+.diff-btn {
+  padding: 8px 16px; border-radius: 8px; border: 1.5px solid var(--border);
+  font-weight: 600; font-size: 12.5px; cursor: pointer; transition: all var(--transition);
+  background: var(--surface); color: var(--text2);
+}
+.diff-btn:hover, .diff-btn.selected { color: #fff; border-color: transparent; }
+.diff-btn.easy { }
+.diff-btn.easy.selected { background: var(--accent); }
+.diff-btn.medium.selected { background: #F59E0B; }
+.diff-btn.hard.selected { background: #EF4444; }
+
+/* ─── QUESTION PAPER LOADER ─── */
+#qp-loader {
+  display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.5);
+  z-index: 1000; align-items: center; justify-content: center;
+}
+#qp-loader.show { display: flex; }
+.qp-loader-card {
+  background: var(--surface); border-radius: 16px; padding: 40px 48px;
+  text-align: center; width: 340px; box-shadow: var(--shadow-lg);
+}
+.qp-pen-anim { position: relative; width: 80px; height: 80px; margin: 0 auto 24px; }
+.qp-pen { font-size: 36px; animation: penWrite 0.6s ease-in-out infinite alternate; display: block; }
+.qp-lines { display: flex; flex-direction: column; gap: 6px; margin-top: 8px; }
+.qp-line {
+  height: 3px; background: var(--border); border-radius: 99px; overflow: hidden;
+}
+.qp-line-fill { height: 100%; background: var(--accent); border-radius: 99px; width: 0; animation: lineGrow 2s ease forwards; }
+.qp-line:nth-child(1) .qp-line-fill { animation-delay: 0s; }
+.qp-line:nth-child(2) .qp-line-fill { animation-delay: 0.3s; }
+.qp-line:nth-child(3) .qp-line-fill { animation-delay: 0.6s; }
+.qp-step { font-size: 12px; color: var(--text3); margin-top: 16px; animation: stepChange 2s ease infinite; }
+@keyframes penWrite { 0% { transform: rotate(-10deg) translateX(-3px); } 100% { transform: rotate(10deg) translateX(3px); } }
+@keyframes lineGrow { 0% { width:0; } 100% { width:100%; } }
+@keyframes stepChange { 0%,30% { opacity:1; } 40%,60% { opacity:0.3; } 70%,100% { opacity:1; } }
+
+/* ─── HALL TICKET ─── */
+.hall-ticket {
+  border: 2px solid var(--primary); border-radius: var(--radius);
+  background: var(--surface); overflow: hidden;
+}
+.ht-header { background: var(--primary); color: #fff; padding: 16px 20px; display: flex; align-items: center; gap: 14px; }
+[data-theme="dark"] .ht-header { background: var(--surface2); color: var(--text); }
+.ht-logo { font-size: 28px; }
+.ht-body { padding: 20px; }
+.ht-field { display: flex; justify-content: space-between; padding: 7px 0; border-bottom: 1px dotted var(--border); font-size: 13px; }
+.ht-field:last-child { border-bottom: none; }
+.ht-field-label { color: var(--text3); font-weight: 600; }
+.ht-field-val { color: var(--text); font-weight: 600; }
+
+/* ─── RESULT CARDS ─── */
+.result-subject-card {
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: var(--radius); padding: 16px 18px; transition: all var(--transition);
+}
+.result-subject-card:hover { box-shadow: var(--shadow-lg); }
+.result-mark-bar { height: 6px; background: var(--border); border-radius: 99px; overflow: hidden; margin-top: 10px; }
+.result-mark-fill { height: 100%; border-radius: 99px; transition: width 1.2s cubic-bezier(.4,0,.2,1); }
+
+/* ─── SNACKBAR ─── */
+.snackbar {
+  position: fixed; bottom: 24px; right: 24px; z-index: 5000;
+  display: flex; flex-direction: column; gap: 8px;
+}
+.snack {
+  padding: 12px 20px; border-radius: 10px; color: #fff; font-size: 13px;
+  font-weight: 600; display: flex; align-items: center; gap: 10px;
+  box-shadow: var(--shadow-lg); animation: snackIn 0.3s ease, snackOut 0.3s ease 3.7s forwards;
+  min-width: 240px;
+}
+.snack.success { background: var(--accent); }
+.snack.error { background: #EF4444; }
+.snack.info { background: var(--primary); }
+@keyframes snackIn { from { opacity:0; transform:translateX(60px); } to { opacity:1; transform:translateX(0); } }
+@keyframes snackOut { to { opacity:0; transform:translateX(60px); } }
+
+/* ─── PAGE ANIMATION ─── */
+.page-fade { animation: pageFadeIn 0.35s ease forwards; }
+@keyframes pageFadeIn { from { opacity:0; transform:translateY(10px); } to { opacity:1; transform:translateY(0); } }
+
+/* ─── RESPONSIVE ─── */
+@media (max-width: 768px) {
+  .sidebar { transform: translateX(-100%); }
+  .sidebar.mobile-show { transform: translateX(0); }
+  .topbar { left: 0 !important; }
+  .main-content { margin-left: 0 !important; padding: 16px; }
+  .login-left { display: none; }
+  .login-right { width: 100%; }
+  .topbar-breadcrumb { display: none; }
+}
+@media (max-width: 576px) {
+  .main-content { padding: 12px; }
+  .welcome-banner { flex-direction: column; align-items: flex-start; gap: 12px; }
+  .welcome-icon { display: none; }
+}
+
+/* misc */
+.section-title { font-family: 'Outfit',sans-serif; font-size: 1rem; font-weight: 700; color: var(--text); margin-bottom: 16px; display: flex; align-items: center; gap: 8px; }
+.section-title::after { content:''; flex:1; height:1px; background:var(--border); margin-left: 8px; }
+.mini-chart-bar { display: flex; align-items: flex-end; gap: 3px; height: 40px; }
+.mini-bar { flex: 1; background: var(--primary); border-radius: 3px 3px 0 0; opacity: 0.7; transition: opacity var(--transition); }
+.mini-bar:hover { opacity: 1; }
+[data-theme="dark"] .mini-bar { background: var(--primary); }
+.skeleton { background: linear-gradient(90deg, var(--surface2) 25%, var(--border) 50%, var(--surface2) 75%); background-size: 200% 100%; animation: skeleton 1.5s infinite; border-radius: 6px; }
+@keyframes skeleton { 0% { background-position:200% 0; } 100% { background-position:-200% 0; } }
+.progress-ring { transform: rotate(-90deg); }
+.progress-ring circle { fill: none; stroke-width: 5; stroke-linecap: round; transition: stroke-dashoffset 1s ease; }
+</style>
+</head>
+<body>
+
+<!-- PAGE LOADER -->
+<div id="page-loader">
+  <div class="loader-paper"></div>
+  <div class="loader-paper"></div>
+  <div class="loader-paper"></div>
+  <div style="text-align:center; animation: loaderFadeIn 0.6s ease forwards;">
+    <div style="display:flex;align-items:center;gap:14px;justify-content:center;margin-bottom:8px;">
+      <div class="loader-logo-icon">
+        <div class="loader-book"></div>
+        <div class="loader-bulb">💡</div>
+      </div>
+      <div>
+        <div class="loader-title"><span class="q">Q</span><span class="gen">Gen</span></div>
+        <div class="loader-subtitle">Question Paper Generator</div>
+      </div>
+    </div>
+    <div class="loader-progress" style="margin:20px auto 12px;"><div class="loader-progress-bar"></div></div>
+    <div class="loader-dots"><span></span><span></span><span></span></div>
+    <div style="font-size:11px;color:var(--text3);margin-top:12px;">Initializing academic platform...</div>
+  </div>
+</div>
+
+<!-- QUESTION PAPER GENERATION LOADER -->
+<div id="qp-loader">
+  <div class="qp-loader-card">
+    <div class="qp-pen-anim">
+      <span class="qp-pen">✍️</span>
+    </div>
+    <div style="font-family:'Outfit',sans-serif;font-size:1.1rem;font-weight:700;color:var(--text);margin-bottom:6px;">Generating Question Paper</div>
+    <div class="qp-lines" style="margin-top:16px;">
+      <div class="qp-line"><div class="qp-line-fill"></div></div>
+      <div class="qp-line"><div class="qp-line-fill"></div></div>
+      <div class="qp-line"><div class="qp-line-fill"></div></div>
+    </div>
+    <div class="qp-step" id="qp-step-text">Analyzing uploaded document...</div>
+  </div>
+</div>
+
+<!-- SNACKBAR CONTAINER -->
+<div class="snackbar" id="snackbar"></div>
+
+<!-- LOGIN PAGE -->
+<div id="login-page" class="login-page">
+  <div class="login-left">
+    <div class="login-brand-icon">🎓</div>
+    <div class="login-brand-name" style="font-family:'Outfit',sans-serif;">
+      <span class="q" id="login-logo-q">Q</span><span class="gen" id="login-logo-gen">Gen</span>
+    </div>
+    <div class="login-brand-tagline">Question Paper Generator & Exam Scheduler</div>
+    <div style="margin-top:40px; display:flex; flex-direction:column; gap:8px;">
+      <div class="login-feature"><i class="bi bi-file-earmark-check"></i> AI-Powered Question Generation</div>
+      <div class="login-feature"><i class="bi bi-calendar3"></i> Smart Exam Scheduling</div>
+      <div class="login-feature"><i class="bi bi-people"></i> Complete Student Management</div>
+      <div class="login-feature"><i class="bi bi-graph-up"></i> Analytics & Reports</div>
+      <div class="login-feature"><i class="bi bi-shield-check"></i> Multi-Role Access Control</div>
+    </div>
+  </div>
+  <div class="login-right">
+    <div style="position:absolute;top:20px;right:20px;">
+      <button class="theme-toggle" onclick="toggleTheme()">
+        <i class="bi bi-moon-stars" id="theme-icon-login"></i>
+        <span id="theme-label-login">Dark</span>
+      </button>
+    </div>
+    <div class="login-card">
+      <div class="login-title">Welcome back 👋</div>
+      <div class="login-subtitle">Sign in to your Qgen account</div>
+      <div class="login-form-group">
+        <label class="form-label-custom">Select Role</label>
+        <div class="role-pills" id="role-pills">
+          <div class="role-pill selected" onclick="selectRole('Admin')" data-role="Admin">Admin</div>
+          <div class="role-pill" onclick="selectRole('Principal')" data-role="Principal">Principal</div>
+          <div class="role-pill" onclick="selectRole('HOD')" data-role="HOD">HOD</div>
+          <div class="role-pill" onclick="selectRole('Teacher')" data-role="Teacher">Teacher</div>
+          <div class="role-pill" onclick="selectRole('Exam Cell Staff')" data-role="Exam Cell Staff">Exam Cell</div>
+          <div class="role-pill" onclick="selectRole('Student')" data-role="Student">Student</div>
+        </div>
+      </div>
+      <div class="login-form-group">
+        <label class="form-label-custom">Username</label>
+        <div class="input-icon-wrap">
+          <i class="bi bi-person icon"></i>
+          <input type="text" class="login-input" id="login-username" value="Admin" placeholder="Enter username"/>
+        </div>
+      </div>
+      <div class="login-form-group">
+        <label class="form-label-custom">Password</label>
+        <div class="input-icon-wrap">
+          <i class="bi bi-lock icon"></i>
+          <input type="password" class="login-input" id="login-password" value="Admin" placeholder="Enter password"/>
+        </div>
+      </div>
+      <div style="display:flex;justify-content:flex-end;margin-bottom:20px;">
+        <span style="font-size:12px;color:var(--primary);cursor:pointer;font-weight:600;">Forgot password?</span>
+      </div>
+      <button class="login-btn" onclick="doLogin()">
+        <i class="bi bi-box-arrow-in-right"></i> Sign In
+      </button>
+      <div style="margin-top:20px;text-align:center;">
+        <div style="font-size:11.5px;color:var(--text3);background:var(--surface2);padding:10px;border-radius:8px;">
+          <strong style="color:var(--text2);">Demo:</strong> Admin/Admin &nbsp;|&nbsp; Student/name &nbsp;|&nbsp; Teacher/staff
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- MAIN APP (hidden until login) -->
+<div id="main-app" style="display:none;">
+  <!-- SIDEBAR -->
+  <div class="sidebar" id="sidebar">
+    <div class="sidebar-logo">
+      <span style="font-size:24px;flex-shrink:0;">📚</span>
+      <div class="sidebar-logo-text"><span class="q">Q</span><span class="gen">Gen</span></div>
+    </div>
+    <nav class="sidebar-nav" id="sidebar-nav">
+      <!-- Nav built by JS based on role -->
+    </nav>
+    <div class="sidebar-footer">
+      <button class="nav-item-btn" onclick="doLogout()" style="border-radius:8px;color:#EF4444;">
+        <i class="bi bi-box-arrow-left nav-icon"></i>
+        <span class="nav-label">Logout</span>
+      </button>
+    </div>
+  </div>
+
+  <!-- TOP BAR -->
+  <div class="topbar" id="topbar">
+    <button class="sidebar-toggle" onclick="toggleSidebar()"><i class="bi bi-list"></i></button>
+    <div class="topbar-breadcrumb">
+      <span style="color:var(--text3);">Qgen</span>
+      <span style="margin:0 6px;color:var(--border);">/</span>
+      <span class="current" id="breadcrumb-current">Dashboard</span>
+    </div>
+    <div class="topbar-actions">
+      <button class="theme-toggle" onclick="toggleTheme()">
+        <i class="bi bi-moon-stars" id="theme-icon-app"></i>
+        <span id="theme-label-app">Dark</span>
+      </button>
+      <div style="position:relative;">
+        <button class="topbar-btn" onclick="toggleNotifPanel()">
+          <i class="bi bi-bell"></i>
+          <div class="badge-dot"></div>
+        </button>
+        <div class="dropdown-panel" id="notif-panel">
+          <div style="padding:12px 16px;border-bottom:1px solid var(--border);font-weight:700;font-size:13px;color:var(--text);">Notifications</div>
+          <div class="notif-item"><div class="notif-dot"></div><div><div class="notif-text">New exam scheduled: CS101 Final Exam</div><div class="notif-time">2 min ago</div></div></div>
+          <div class="notif-item"><div class="notif-dot" style="background:var(--yellow-dark);"></div><div><div class="notif-text">Hall ticket generation completed for 245 students</div><div class="notif-time">1 hr ago</div></div></div>
+          <div class="notif-item"><div class="notif-dot" style="background:#EF4444;"></div><div><div class="notif-text">Complaint from Student ID: S1042 pending</div><div class="notif-time">3 hr ago</div></div></div>
+          <div class="notif-item"><div class="notif-dot" style="background:var(--primary);"></div><div><div class="notif-text">Results published for Semester 4</div><div class="notif-time">Yesterday</div></div></div>
+        </div>
+      </div>
+      <div class="avatar" id="user-avatar">AD</div>
+    </div>
+  </div>
+
+  <!-- MAIN CONTENT AREA -->
+  <div class="main-content" id="main-content">
+    <div id="page-content" class="page-fade"></div>
+  </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.2/js/bootstrap.bundle.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<script>
+// ─── APP STATE ───
+let currentRole = 'Admin';
+let sidebarCollapsed = false;
+let isDark = false;
+let currentPage = 'dashboard';
+let chartInstances = {};
+
+const ROLES = {
+  'Admin': { pass: 'Admin', abbr: 'AD', color: '#1B3A6B' },
+  'Principal': { pass: '12345678', abbr: 'PR', color: '#6B21A8' },
+  'HOD': { pass: 'hod', abbr: 'HD', color: '#0E7490' },
+  'Teacher': { pass: 'staff', abbr: 'TC', color: '#047857' },
+  'Exam Cell Staff': { pass: 'ECS', abbr: 'EC', color: '#B45309' },
+  'Student': { pass: 'name', abbr: 'ST', color: '#DC2626' }
+};
+
+const NAV_CONFIG = {
+  Admin: [
+    { label: 'MAIN', items: [
+      { icon: 'bi-grid', label: 'Dashboard', page: 'dashboard' },
+      { icon: 'bi-file-earmark-text', label: 'Question Paper Generator', page: 'qpgen' },
+      { icon: 'bi-calendar3', label: 'Exam Scheduler', page: 'exam-scheduler' },
+    ]},
+    { label: 'MANAGEMENT', items: [
+      { icon: 'bi-people', label: 'Student Management', page: 'students' },
+      { icon: 'bi-person-plus', label: 'Admission', page: 'admission' },
+      { icon: 'bi-award', label: 'Result Management', page: 'results' },
+      { icon: 'bi-folder2', label: 'Documents', page: 'documents' },
+    ]},
+    { label: 'INSIGHTS', items: [
+      { icon: 'bi-bar-chart-line', label: 'Reports & Analytics', page: 'reports' },
+      { icon: 'bi-chat-dots', label: 'Communications', page: 'communications' },
+    ]},
+    { label: 'SYSTEM', items: [
+      { icon: 'bi-gear', label: 'Settings', page: 'settings' },
+    ]}
+  ],
+  Student: [
+    { label: 'MY PORTAL', items: [
+      { icon: 'bi-grid', label: 'Dashboard', page: 'dashboard' },
+      { icon: 'bi-person-badge', label: 'My Profile', page: 'students' },
+      { icon: 'bi-folder2', label: 'My Documents', page: 'documents' },
+      { icon: 'bi-ticket-perforated', label: 'Hall Ticket', page: 'exam-scheduler' },
+      { icon: 'bi-award', label: 'My Results', page: 'results' },
+      { icon: 'bi-chat-dots', label: 'Complaints', page: 'communications' },
+    ]}
+  ],
+  Teacher: [
+    { label: 'TEACHING', items: [
+      { icon: 'bi-grid', label: 'Dashboard', page: 'dashboard' },
+      { icon: 'bi-file-earmark-text', label: 'Question Papers', page: 'qpgen' },
+      { icon: 'bi-calendar3', label: 'Exam Schedule', page: 'exam-scheduler' },
+      { icon: 'bi-people', label: 'Students', page: 'students' },
+      { icon: 'bi-award', label: 'Results', page: 'results' },
+      { icon: 'bi-bar-chart-line', label: 'Reports', page: 'reports' },
+    ]}
+  ],
+  HOD: [
+    { label: 'DEPARTMENT', items: [
+      { icon: 'bi-grid', label: 'Dashboard', page: 'dashboard' },
+      { icon: 'bi-file-earmark-text', label: 'Question Papers', page: 'qpgen' },
+      { icon: 'bi-calendar3', label: 'Exam Scheduler', page: 'exam-scheduler' },
+      { icon: 'bi-people', label: 'Students', page: 'students' },
+      { icon: 'bi-award', label: 'Results', page: 'results' },
+      { icon: 'bi-bar-chart-line', label: 'Reports', page: 'reports' },
+      { icon: 'bi-chat-dots', label: 'Communications', page: 'communications' },
+    ]}
+  ],
+  Principal: [
+    { label: 'PRINCIPAL', items: [
+      { icon: 'bi-grid', label: 'Dashboard', page: 'dashboard' },
+      { icon: 'bi-people', label: 'Students', page: 'students' },
+      { icon: 'bi-person-plus', label: 'Admissions', page: 'admission' },
+      { icon: 'bi-award', label: 'Results', page: 'results' },
+      { icon: 'bi-bar-chart-line', label: 'Reports', page: 'reports' },
+      { icon: 'bi-chat-dots', label: 'Communications', page: 'communications' },
+    ]}
+  ],
+  'Exam Cell Staff': [
+    { label: 'EXAM CELL', items: [
+      { icon: 'bi-grid', label: 'Dashboard', page: 'dashboard' },
+      { icon: 'bi-file-earmark-text', label: 'Question Papers', page: 'qpgen' },
+      { icon: 'bi-calendar3', label: 'Exam Scheduler', page: 'exam-scheduler' },
+      { icon: 'bi-folder2', label: 'Documents', page: 'documents' },
+    ]}
+  ]
+};
+
+// ─── INIT ───
+window.addEventListener('load', () => {
+  setTimeout(() => {
+    document.getElementById('page-loader').style.opacity = '0';
+    document.getElementById('page-loader').style.transition = 'opacity 0.5s ease';
+    setTimeout(() => { document.getElementById('page-loader').style.display = 'none'; }, 500);
+  }, 2200);
+});
+
+// ─── THEME ───
+function toggleTheme() {
+  isDark = !isDark;
+  document.documentElement.setAttribute('data-theme', isDark ? 'dark' : 'light');
+  const icons = ['theme-icon-login','theme-icon-app'];
+  const labels = ['theme-label-login','theme-label-app'];
+  icons.forEach(id => { const el = document.getElementById(id); if(el) el.className = isDark ? 'bi bi-sun' : 'bi bi-moon-stars'; });
+  labels.forEach(id => { const el = document.getElementById(id); if(el) el.textContent = isDark ? 'Light' : 'Dark'; });
+  // Update logo Q/Gen colors on login page
+  const lq = document.getElementById('login-logo-q');
+  const lg = document.getElementById('login-logo-gen');
+  if(lq && lg) {
+    if(isDark) { lq.style.color = '#3AB54A'; lg.style.color = '#F5C518'; }
+    else { lq.style.color = '#fff'; lg.style.color = 'rgba(255,255,255,0.85)'; }
+  }
+  // Re-render charts
+  Object.values(chartInstances).forEach(c => c.destroy && c.destroy());
+  chartInstances = {};
+  if(currentPage) setTimeout(() => navigateTo(currentPage), 50);
+}
+
+// ─── ROLE SELECT ───
+function selectRole(role) {
+  currentRole = role;
+  document.querySelectorAll('.role-pill').forEach(p => {
+    p.classList.toggle('selected', p.dataset.role === role);
+  });
+  const creds = { Admin:'Admin', Principal:'12345678', HOD:'hod', Teacher:'staff', 'Exam Cell Staff':'ECS', Student:'name' };
+  document.getElementById('login-username').value = role;
+  document.getElementById('login-password').value = creds[role] || '';
+}
+
+// ─── LOGIN ───
+function doLogin() {
+  const u = document.getElementById('login-username').value.trim();
+  const p = document.getElementById('login-password').value;
+  const roleData = ROLES[currentRole];
+  if (!roleData || p !== roleData.pass) {
+    showSnack('Invalid credentials. Please try again.', 'error');
+    return;
+  }
+  document.getElementById('login-page').style.display = 'none';
+  document.getElementById('main-app').style.display = 'flex';
+  buildNav();
+  const av = document.getElementById('user-avatar');
+  av.textContent = roleData.abbr;
+  av.style.background = roleData.color;
+  navigateTo('dashboard');
+  showSnack(`Welcome back, ${currentRole}! ✓`, 'success');
+}
+
+function doLogout() {
+  document.getElementById('main-app').style.display = 'none';
+  document.getElementById('login-page').style.display = 'flex';
+}
+
+// ─── SIDEBAR ───
+function buildNav() {
+  const sections = NAV_CONFIG[currentRole] || NAV_CONFIG.Admin;
+  let html = '';
+  sections.forEach(sec => {
+    html += `<div class="sidebar-section-label">${sec.label}</div>`;
+    sec.items.forEach(item => {
+      html += `<button class="nav-item-btn" data-page="${item.page}" onclick="navigateTo('${item.page}')">
+        <i class="bi ${item.icon} nav-icon"></i>
+        <span class="nav-label">${item.label}</span>
+      </button>`;
+    });
+  });
+  document.getElementById('sidebar-nav').innerHTML = html;
+}
+
+function toggleSidebar() {
+  const s = document.getElementById('sidebar');
+  const t = document.getElementById('topbar');
+  const m = document.getElementById('main-content');
+  if(window.innerWidth <= 768) {
+    s.classList.toggle('mobile-show');
+  } else {
+    sidebarCollapsed = !sidebarCollapsed;
+    s.classList.toggle('collapsed', sidebarCollapsed);
+    t.classList.toggle('collapsed', sidebarCollapsed);
+    m.classList.toggle('collapsed', sidebarCollapsed);
+  }
+}
+
+// ─── NOTIFICATIONS ───
+function toggleNotifPanel() {
+  document.getElementById('notif-panel').classList.toggle('show');
+}
+document.addEventListener('click', (e) => {
+  if(!e.target.closest('#notif-panel') && !e.target.closest('.topbar-btn')) {
+    document.getElementById('notif-panel').classList.remove('show');
+  }
+});
+
+// ─── SNACKBAR ───
+function showSnack(msg, type='info') {
+  const container = document.getElementById('snackbar');
+  const div = document.createElement('div');
+  div.className = `snack ${type}`;
+  const icon = type==='success'?'bi-check-circle':type==='error'?'bi-x-circle':'bi-info-circle';
+  div.innerHTML = `<i class="bi ${icon}"></i> ${msg}`;
+  container.appendChild(div);
+  setTimeout(() => div.remove(), 4000);
+}
+
+// ─── NAVIGATION ───
+function navigateTo(page) {
+  currentPage = page;
+  document.querySelectorAll('.nav-item-btn[data-page]').forEach(b => {
+    b.classList.toggle('active', b.dataset.page === page);
+  });
+  const labels = {
+    dashboard:'Dashboard', qpgen:'Question Paper Generator', 'exam-scheduler':'Exam Scheduler',
+    students:'Student Management', admission:'Admission Management', results:'Result Management',
+    documents:'Document Management', reports:'Reports & Analytics', communications:'Communications',
+    settings:'Settings'
+  };
+  const bc = document.getElementById('breadcrumb-current');
+  if(bc) bc.textContent = labels[page] || page;
+  Object.values(chartInstances).forEach(c => c.destroy && c.destroy());
+  chartInstances = {};
+  const content = document.getElementById('page-content');
+  content.className = 'page-fade';
+  content.innerHTML = '';
+  const pages = { dashboard: renderDashboard, qpgen: renderQPGen, 'exam-scheduler': renderExamScheduler, students: renderStudents, admission: renderAdmission, results: renderResults, documents: renderDocuments, reports: renderReports, communications: renderCommunications, settings: renderSettings };
+  if(pages[page]) pages[page]();
+  else content.innerHTML = `<div class="card-custom p-5 text-center"><i class="bi bi-tools" style="font-size:3rem;color:var(--text3);"></i><h5 style="margin-top:16px;font-family:'Outfit',sans-serif;">Coming Soon</h5><p style="color:var(--text3);">${labels[page]} module is under development.</p></div>`;
+  if(window.innerWidth<=768) document.getElementById('sidebar').classList.remove('mobile-show');
+}
+
+// ─── DASHBOARD ───
+function renderDashboard() {
+  const greetings = { Admin:'Administrator', Principal:'Principal', HOD:'HOD', Teacher:'Faculty', 'Exam Cell Staff':'Exam Cell Staff', Student:'Student' };
+  const content = document.getElementById('page-content');
+  content.innerHTML = `
+  <div class="welcome-banner">
+    <div class="welcome-text">
+      <h2>Good morning, ${greetings[currentRole] || currentRole} 👋</h2>
+      <p>Here's what's happening at your institution today</p>
+    </div>
+    <div class="welcome-icon">🎓</div>
+  </div>
+  <div class="row g-3 mb-4">
+    <div class="col-6 col-md-3"><div class="stat-card"><div class="stat-icon blue"><i class="bi bi-people"></i></div><div><div class="stat-val" style="color:var(--primary)">2,486</div><div class="stat-label">Total Students</div><div class="stat-change up">↑ 12% this month</div></div></div></div>
+    <div class="col-6 col-md-3"><div class="stat-card"><div class="stat-icon green"><i class="bi bi-check2-circle"></i></div><div><div class="stat-val" style="color:var(--accent)">87.4%</div><div class="stat-label">Pass Percentage</div><div class="stat-change up">↑ 3.2%</div></div></div></div>
+    <div class="col-6 col-md-3"><div class="stat-card"><div class="stat-icon yellow"><i class="bi bi-calendar3"></i></div><div><div class="stat-val" style="color:var(--yellow-dark)">14</div><div class="stat-label">Exams Scheduled</div><div class="stat-change up">↑ 2 new</div></div></div></div>
+    <div class="col-6 col-md-3"><div class="stat-card"><div class="stat-icon red"><i class="bi bi-file-earmark-text"></i></div><div><div class="stat-val" style="color:#E53935">348</div><div class="stat-label">Papers Generated</div><div class="stat-change up">↑ 18 today</div></div></div></div>
+  </div>
+  <div class="row g-3 mb-4">
+    <div class="col-md-8">
+      <div class="card-custom p-4">
+        <div class="section-title">Performance Overview</div>
+        <canvas id="chart-perf" height="140"></canvas>
+      </div>
+    </div>
+    <div class="col-md-4">
+      <div class="card-custom p-4">
+        <div class="section-title">Pass vs Fail</div>
+        <canvas id="chart-pie" height="160"></canvas>
+        <div style="display:flex;justify-content:center;gap:20px;margin-top:12px;">
+          <div style="font-size:12px;color:var(--text3);"><span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:var(--accent);margin-right:4px;"></span>Pass 87%</div>
+          <div style="font-size:12px;color:var(--text3);"><span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:#EF4444;margin-right:4px;"></span>Fail 13%</div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="row g-3">
+    <div class="col-md-7">
+      <div class="card-custom p-4">
+        <div class="section-title">Recent Activity</div>
+        <div class="activity-item"><div class="activity-avatar" style="background:#EBF0FB;color:var(--primary);">📄</div><div><div class="activity-text">Question paper generated for <strong>CS401 – Data Structures</strong></div><div class="activity-time">5 min ago by Teacher</div></div></div>
+        <div class="activity-item"><div class="activity-avatar" style="background:#EAF6EC;color:var(--accent);">✅</div><div><div class="activity-text">Result published for <strong>Semester 3 – All departments</strong></div><div class="activity-time">1 hr ago by Admin</div></div></div>
+        <div class="activity-item"><div class="activity-avatar" style="background:#FEF8E6;color:var(--yellow-dark);">🎫</div><div><div class="activity-text">Hall tickets generated for <strong>245 students</strong></div><div class="activity-time">2 hr ago by Exam Cell</div></div></div>
+        <div class="activity-item"><div class="activity-avatar" style="background:#FDEDED;color:#E53935;">📋</div><div><div class="activity-text">New admission form submitted: <strong>Riya Sharma</strong></div><div class="activity-time">3 hr ago</div></div></div>
+      </div>
+    </div>
+    <div class="col-md-5">
+      <div class="card-custom p-4">
+        <div class="section-title">Quick Actions</div>
+        <div class="row g-2">
+          <div class="col-6"><div class="quick-action" onclick="navigateTo('qpgen')"><div class="qa-icon stat-icon blue"><i class="bi bi-file-earmark-plus"></i></div><span class="qa-label">Generate Paper</span></div></div>
+          <div class="col-6"><div class="quick-action" onclick="navigateTo('exam-scheduler')"><div class="qa-icon stat-icon green"><i class="bi bi-calendar-plus"></i></div><span class="qa-label">Schedule Exam</span></div></div>
+          <div class="col-6"><div class="quick-action" onclick="navigateTo('students')"><div class="qa-icon stat-icon yellow"><i class="bi bi-person-plus"></i></div><span class="qa-label">Add Student</span></div></div>
+          <div class="col-6"><div class="quick-action" onclick="navigateTo('results')"><div class="qa-icon stat-icon red"><i class="bi bi-graph-up"></i></div><span class="qa-label">View Results</span></div></div>
+        </div>
+      </div>
+    </div>
+  </div>`;
+  setTimeout(() => {
+    const dark = isDark;
+    const textColor = dark ? '#9BA3BB' : '#5A6278';
+    const gridColor = dark ? '#2A3042' : '#DDE2EE';
+    // Performance chart
+    const ctx1 = document.getElementById('chart-perf');
+    if(ctx1) {
+      chartInstances['perf'] = new Chart(ctx1, {
+        type: 'bar',
+        data: {
+          labels: ['CS','EEE','Mech','Civil','IT','MBA'],
+          datasets: [{
+            label: 'Pass %', data: [89,82,76,85,91,88],
+            backgroundColor: isDark ? '#3AB54A' : '#1B3A6B',
+            borderRadius: 6, borderSkipped: false
+          },{
+            label: 'Avg Marks', data: [72,68,64,71,78,74],
+            backgroundColor: isDark ? '#F5C518' : '#3AB54A',
+            borderRadius: 6, borderSkipped: false
+          }]
+        },
+        options: { responsive: true, plugins: { legend: { labels: { color: textColor, font: { family: 'DM Sans' } } } }, scales: { x: { ticks: { color: textColor }, grid: { color: gridColor } }, y: { ticks: { color: textColor }, grid: { color: gridColor } } } }
+      });
+    }
+    // Pie chart
+    const ctx2 = document.getElementById('chart-pie');
+    if(ctx2) {
+      chartInstances['pie'] = new Chart(ctx2, {
+        type: 'doughnut',
+        data: {
+          labels: ['Pass','Fail'],
+          datasets: [{ data: [87,13], backgroundColor: [isDark?'#3AB54A':'#1B3A6B','#EF4444'], borderWidth: 0, hoverOffset: 6 }]
+        },
+        options: { responsive: true, cutout: '70%', plugins: { legend: { display: false } } }
+      });
+    }
+  }, 100);
+}
+
+// ─── QUESTION PAPER GENERATOR ───
+function renderQPGen() {
+  const content = document.getElementById('page-content');
+  content.innerHTML = `
+  <div class="page-header"><div class="page-title">Question Paper Generator</div><div class="page-subtitle">Upload syllabus or PDF to auto-generate question papers</div></div>
+  <div class="row g-3">
+    <div class="col-lg-7">
+      <div class="card-custom p-4 mb-3">
+        <div class="section-title">Upload Source Document</div>
+        <div class="upload-zone" onclick="showSnack('File browser opened (demo)','info')" ondragover="this.style.borderColor='var(--primary)'" ondragleave="this.style.borderColor='var(--border)'">
+          <div class="upload-zone-icon">📄</div>
+          <div class="upload-zone-text"><strong>Click to upload</strong> or drag & drop</div>
+          <div class="upload-zone-hint">Supports PDF, DOC, DOCX (Max 20MB)</div>
+          <div style="margin-top:16px;display:flex;gap:8px;justify-content:center;flex-wrap:wrap;">
+            <span class="badge-custom badge-blue"><i class="bi bi-filetype-pdf"></i> PDF</span>
+            <span class="badge-custom badge-yellow"><i class="bi bi-filetype-docx"></i> DOCX</span>
+            <span class="badge-custom badge-green"><i class="bi bi-file-text"></i> TXT</span>
+          </div>
+        </div>
+      </div>
+      <div class="card-custom p-4 mb-3">
+        <div class="section-title">Exam Configuration</div>
+        <div class="row g-3">
+          <div class="col-md-6">
+            <label class="form-label-custom">Exam Type</label>
+            <select class="form-select-custom">
+              <option>Internal Assessment (IA)</option>
+              <option>Semester Exam</option>
+              <option>Unit Test</option>
+              <option>Annual Exam</option>
+              <option>Board Exam</option>
+            </select>
+          </div>
+          <div class="col-md-6">
+            <label class="form-label-custom">Subject</label>
+            <input class="form-control-custom" placeholder="e.g. Data Structures & Algorithms" value="Data Structures & Algorithms"/>
+          </div>
+          <div class="col-md-6">
+            <label class="form-label-custom">Total Marks</label>
+            <input class="form-control-custom" type="number" value="100"/>
+          </div>
+          <div class="col-md-6">
+            <label class="form-label-custom">Duration (Hours)</label>
+            <input class="form-control-custom" type="number" value="3"/>
+          </div>
+        </div>
+      </div>
+      <div class="card-custom p-4 mb-3">
+        <div class="section-title">Marks Pattern</div>
+        <div style="display:flex;gap:10px;flex-wrap:wrap;">
+          <div class="marks-chip selected" onclick="toggleChip(this)">2</div>
+          <div class="marks-chip" onclick="toggleChip(this)">5</div>
+          <div class="marks-chip selected" onclick="toggleChip(this)">10</div>
+          <div class="marks-chip" onclick="toggleChip(this)">15</div>
+          <div class="marks-chip" onclick="toggleChip(this)">20</div>
+        </div>
+        <div style="margin-top:12px;font-size:12px;color:var(--text3);">Selected marks will be distributed across question sections</div>
+      </div>
+      <div class="card-custom p-4 mb-3">
+        <div class="section-title">Difficulty Level</div>
+        <div style="display:flex;gap:10px;flex-wrap:wrap;">
+          <button class="diff-btn easy selected" onclick="selectDiff(this,'easy')">🟢 Easy</button>
+          <button class="diff-btn medium" onclick="selectDiff(this,'medium')">🟡 Medium</button>
+          <button class="diff-btn hard" onclick="selectDiff(this,'hard')">🔴 Hard</button>
+          <button class="diff-btn" onclick="selectDiff(this,'mixed')" style="background:var(--surface);">⚡ Mixed</button>
+        </div>
+      </div>
+      <button class="btn-primary-custom" style="width:100%;justify-content:center;padding:14px;" onclick="generatePaper()">
+        <i class="bi bi-magic"></i> Generate Question Paper
+      </button>
+    </div>
+    <div class="col-lg-5">
+      <div class="card-custom p-4 mb-3">
+        <div class="section-title">Recent Papers</div>
+        <div class="activity-item"><div class="activity-avatar stat-icon blue" style="width:36px;height:36px;border-radius:8px;font-size:14px;"><i class="bi bi-file-earmark-pdf"></i></div><div><div class="activity-text">CS401 – Data Structures IA</div><div class="activity-time">Today, 10:30 AM</div></div><span class="badge-custom badge-green" style="margin-left:auto;">Ready</span></div>
+        <div class="activity-item"><div class="activity-avatar stat-icon yellow" style="width:36px;height:36px;border-radius:8px;font-size:14px;"><i class="bi bi-file-earmark-pdf"></i></div><div><div class="activity-text">MA201 – Engineering Maths</div><div class="activity-time">Yesterday</div></div><span class="badge-custom badge-green" style="margin-left:auto;">Ready</span></div>
+        <div class="activity-item"><div class="activity-avatar stat-icon green" style="width:36px;height:36px;border-radius:8px;font-size:14px;"><i class="bi bi-file-earmark-pdf"></i></div><div><div class="activity-text">PH101 – Engineering Physics</div><div class="activity-time">2 days ago</div></div><span class="badge-custom badge-green" style="margin-left:auto;">Ready</span></div>
+      </div>
+      <div class="card-custom p-4" id="paper-preview" style="display:none;">
+        <div class="section-title">Paper Preview</div>
+        <div style="background:var(--surface2);border-radius:10px;padding:16px;font-size:12.5px;line-height:1.8;">
+          <div style="text-align:center;margin-bottom:12px;">
+            <div style="font-weight:800;font-family:'Outfit',sans-serif;font-size:14px;">QGEN UNIVERSITY</div>
+            <div style="font-weight:600;">Department of Computer Science</div>
+            <div style="color:var(--text3);">Data Structures & Algorithms – IA Examination</div>
+            <div style="display:flex;justify-content:space-between;margin-top:8px;font-size:11px;color:var(--text3);">
+              <span>Time: 3 Hours</span><span>Max Marks: 100</span>
+            </div>
+          </div>
+          <hr style="border-color:var(--border);"/>
+          <div style="font-weight:700;margin:10px 0 6px;">SECTION A – Short Answer (2 Marks each)</div>
+          <div style="color:var(--text2);">1. Define Stack and mention its applications. (2M)</div>
+          <div style="color:var(--text2);">2. What is time complexity of binary search? (2M)</div>
+          <div style="color:var(--text2);">3. Explain Queue ADT. (2M)</div>
+          <div style="font-weight:700;margin:10px 0 6px;">SECTION B – Long Answer (10 Marks each)</div>
+          <div style="color:var(--text2);">4. Explain Quick Sort algorithm with an example. (10M)</div>
+          <div style="color:var(--text2);">5. Describe Binary Tree traversal methods. (10M)</div>
+        </div>
+        <div style="display:flex;gap:8px;margin-top:16px;">
+          <button class="btn-accent-custom" onclick="showSnack('PDF downloaded successfully!','success')"><i class="bi bi-download"></i> Download PDF</button>
+          <button class="btn-outline-custom" onclick="showSnack('Paper sent to print queue','info')"><i class="bi bi-printer"></i> Print</button>
+        </div>
+      </div>
+    </div>
+  </div>`;
+}
+
+function toggleChip(el) { el.classList.toggle('selected'); }
+function selectDiff(el, type) {
+  document.querySelectorAll('.diff-btn').forEach(b => b.classList.remove('selected'));
+  el.classList.add('selected');
+}
+
+function generatePaper() {
+  const loader = document.getElementById('qp-loader');
+  loader.classList.add('show');
+  const steps = ['Analyzing uploaded document...','Extracting key concepts...','Mapping to difficulty levels...','Generating questions by marks pattern...','Formatting question paper...','Finalizing and preparing PDF...'];
+  let i = 0;
+  const stepEl = document.getElementById('qp-step-text');
+  const interval = setInterval(() => {
+    if(stepEl) stepEl.textContent = steps[i % steps.length];
+    i++;
+  }, 600);
+  setTimeout(() => {
+    clearInterval(interval);
+    loader.classList.remove('false');
+    loader.style.display = 'none';
+    setTimeout(() => { loader.style.display = ''; loader.classList.remove('show'); }, 50);
+    document.getElementById('paper-preview').style.display = 'block';
+    showSnack('Question paper generated successfully! ✓', 'success');
+  }, 3800);
+}
+
+// ─── EXAM SCHEDULER ───
+function renderExamScheduler() {
+  const content = document.getElementById('page-content');
+  content.innerHTML = `
+  <div class="page-header"><div class="page-title">Exam Scheduler</div><div class="page-subtitle">Manage timetables, halls, invigilators and hall tickets</div></div>
+  <div class="row g-3">
+    <div class="col-lg-8">
+      <div class="card-custom p-4 mb-3">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+          <div class="section-title" style="margin-bottom:0;">Exam Timetable</div>
+          <button class="btn-primary-custom" onclick="showSnack('New exam slot added','success')"><i class="bi bi-plus"></i> Add Exam</button>
+        </div>
+        <div style="overflow-x:auto;">
+          <table class="table-custom">
+            <thead><tr><th>Subject</th><th>Date</th><th>Time</th><th>Hall</th><th>Invigilator</th><th>Status</th><th>Action</th></tr></thead>
+            <tbody>
+              <tr><td><strong>CS401 – DSA</strong></td><td>15 Jan 2025</td><td>9:00 – 12:00</td><td>Hall A (60)</td><td>Prof. Rajan</td><td><span class="badge-custom badge-green">Confirmed</span></td><td><button class="btn-outline-custom" style="padding:4px 10px;font-size:11px;" onclick="showHallTicket()"><i class="bi bi-ticket"></i> Ticket</button></td></tr>
+              <tr><td><strong>MA201 – Maths</strong></td><td>17 Jan 2025</td><td>9:00 – 12:00</td><td>Hall B (80)</td><td>Prof. Meera</td><td><span class="badge-custom badge-yellow">Pending</span></td><td><button class="btn-outline-custom" style="padding:4px 10px;font-size:11px;"><i class="bi bi-ticket"></i> Ticket</button></td></tr>
+              <tr><td><strong>PH101 – Physics</strong></td><td>19 Jan 2025</td><td>2:00 – 5:00</td><td>Hall C (100)</td><td>Prof. Kumar</td><td><span class="badge-custom badge-blue">Scheduled</span></td><td><button class="btn-outline-custom" style="padding:4px 10px;font-size:11px;"><i class="bi bi-ticket"></i> Ticket</button></td></tr>
+              <tr><td><strong>EN201 – English</strong></td><td>21 Jan 2025</td><td>9:00 – 12:00</td><td>Hall A (60)</td><td>Prof. Priya</td><td><span class="badge-custom badge-green">Confirmed</span></td><td><button class="btn-outline-custom" style="padding:4px 10px;font-size:11px;"><i class="bi bi-ticket"></i> Ticket</button></td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+      <div class="card-custom p-4">
+        <div class="section-title">Create New Exam</div>
+        <div class="row g-3">
+          <div class="col-md-6"><label class="form-label-custom">Subject</label><select class="form-select-custom"><option>CS401 – Data Structures</option><option>MA201 – Engineering Maths</option><option>PH101 – Physics</option></select></div>
+          <div class="col-md-6"><label class="form-label-custom">Exam Date</label><input type="date" class="form-control-custom" value="2025-01-25"/></div>
+          <div class="col-md-6"><label class="form-label-custom">Start Time</label><input type="time" class="form-control-custom" value="09:00"/></div>
+          <div class="col-md-6"><label class="form-label-custom">Hall Allocation</label><select class="form-select-custom"><option>Hall A – Capacity 60</option><option>Hall B – Capacity 80</option><option>Hall C – Capacity 100</option></select></div>
+          <div class="col-md-6"><label class="form-label-custom">Invigilator</label><select class="form-select-custom"><option>Prof. Rajan</option><option>Prof. Meera</option><option>Prof. Kumar</option></select></div>
+          <div class="col-md-6"><label class="form-label-custom">Duration (Hours)</label><input type="number" class="form-control-custom" value="3"/></div>
+          <div class="col-12"><button class="btn-accent-custom" onclick="showSnack('Exam scheduled successfully!','success')"><i class="bi bi-calendar-check"></i> Schedule Exam</button> <button class="btn-outline-custom" onclick="showSnack('Auto-seating arranged for 60 students','info')" style="margin-left:8px;"><i class="bi bi-grid-3x3-gap"></i> Auto Seating</button></div>
+        </div>
+      </div>
+    </div>
+    <div class="col-lg-4">
+      <div class="card-custom p-4 mb-3">
+        <div class="section-title">Hall Status</div>
+        <div style="display:flex;flex-direction:column;gap:10px;">
+          ${['Hall A','Hall B','Hall C','Hall D'].map((h,i) => {
+            const cap = [60,80,100,120][i]; const used = [60,45,0,30][i];
+            const pct = Math.round(used/cap*100);
+            return `<div><div style="display:flex;justify-content:space-between;font-size:12.5px;margin-bottom:4px;"><span style="font-weight:600;">${h} <span style="color:var(--text3);font-weight:400;">Cap: ${cap}</span></span><span style="color:${pct===100?'#E53935':pct>50?'#F59E0B':'var(--accent)'};">${pct}%</span></div><div class="result-mark-bar"><div class="result-mark-fill" style="width:${pct}%;background:${pct===100?'#EF4444':pct>50?'#F59E0B':'var(--accent)'}"></div></div></div>`;
+          }).join('')}
+        </div>
+      </div>
+      <div class="card-custom p-4" id="hall-ticket-card">
+        <div class="section-title">Hall Ticket Preview</div>
+        <div class="hall-ticket">
+          <div class="ht-header"><div class="ht-logo">🎓</div><div><div style="font-weight:700;font-size:14px;">QGEN UNIVERSITY</div><div style="font-size:11px;opacity:0.8;">Hall Admission Ticket</div></div></div>
+          <div class="ht-body">
+            <div class="ht-field"><span class="ht-field-label">Student ID</span><span class="ht-field-val">CS21001</span></div>
+            <div class="ht-field"><span class="ht-field-label">Name</span><span class="ht-field-val">Rahul Kumar</span></div>
+            <div class="ht-field"><span class="ht-field-label">Subject</span><span class="ht-field-val">CS401 – DSA</span></div>
+            <div class="ht-field"><span class="ht-field-label">Date & Time</span><span class="ht-field-val">15 Jan, 9:00 AM</span></div>
+            <div class="ht-field"><span class="ht-field-label">Hall</span><span class="ht-field-val">Hall A – Seat 12</span></div>
+          </div>
+        </div>
+        <button class="btn-accent-custom" style="width:100%;justify-content:center;margin-top:12px;" onclick="showSnack('Hall ticket downloaded!','success')"><i class="bi bi-download"></i> Download Hall Ticket</button>
+      </div>
+    </div>
+  </div>`;
+}
+
+function showHallTicket() { showSnack('Hall ticket generated for CS401','success'); }
+
+// ─── STUDENTS ───
+function renderStudents() {
+  const students = [
+    { id:'CS21001', name:'Rahul Kumar', dept:'CS', sem:'4th', marks:82, status:'Active' },
+    { id:'CS21002', name:'Priya Sharma', dept:'CS', sem:'4th', marks:91, status:'Active' },
+    { id:'CS21003', name:'Arun Patel', dept:'CS', sem:'4th', marks:67, status:'Active' },
+    { id:'EE21010', name:'Meena Raj', dept:'EEE', sem:'4th', marks:78, status:'Active' },
+    { id:'CS21005', name:'Sanjay Verma', dept:'CS', sem:'6th', marks:55, status:'Inactive' },
+  ];
+  const content = document.getElementById('page-content');
+  content.innerHTML = `
+  <div class="page-header"><div class="page-title">Student Management</div><div class="page-subtitle">Manage student profiles, documents and records</div></div>
+  <div class="card-custom p-4">
+    <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
+      <div style="display:flex;gap:8px;flex:1;max-width:400px;">
+        <div style="position:relative;flex:1;"><i class="bi bi-search" style="position:absolute;left:12px;top:50%;transform:translateY(-50%);color:var(--text3);"></i><input class="form-control-custom" placeholder="Search students..." style="padding-left:38px;"/></div>
+        <select class="form-select-custom" style="width:120px;"><option>All Dept</option><option>CS</option><option>EEE</option><option>Mech</option></select>
+      </div>
+      <button class="btn-primary-custom" onclick="showSnack('Add student form opened','info')"><i class="bi bi-person-plus"></i> Add Student</button>
+    </div>
+    <div style="overflow-x:auto;">
+      <table class="table-custom">
+        <thead><tr><th>Student ID</th><th>Name</th><th>Department</th><th>Semester</th><th>Avg Marks</th><th>Status</th><th>Actions</th></tr></thead>
+        <tbody>
+          ${students.map(s => `<tr>
+            <td><code style="background:var(--surface2);padding:2px 6px;border-radius:4px;font-size:12px;">${s.id}</code></td>
+            <td><div style="display:flex;align-items:center;gap:10px;"><div class="avatar" style="width:32px;height:32px;font-size:11px;background:var(--primary);">${s.name.split(' ').map(n=>n[0]).join('')}</div><span style="font-weight:600;">${s.name}</span></div></td>
+            <td><span class="badge-custom badge-blue">${s.dept}</span></td>
+            <td>${s.sem}</td>
+            <td><span style="font-weight:700;color:${s.marks>=75?'var(--accent)':s.marks>=50?'var(--yellow-dark)':'#EF4444'};">${s.marks}%</span></td>
+            <td><span class="badge-custom ${s.status==='Active'?'badge-green':'badge-red'}">${s.status}</span></td>
+            <td><div style="display:flex;gap:6px;">
+              <button class="btn-outline-custom" style="padding:4px 10px;font-size:11px;" onclick="showSnack('Viewing profile of ${s.name}','info')"><i class="bi bi-eye"></i></button>
+              <button class="btn-outline-custom" style="padding:4px 10px;font-size:11px;" onclick="showSnack('Editing ${s.name}','info')"><i class="bi bi-pencil"></i></button>
+            </div></td>
+          </tr>`).join('')}
+        </tbody>
+      </table>
+    </div>
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-top:16px;font-size:12.5px;color:var(--text3);">
+      <span>Showing 5 of 2,486 students</span>
+      <div style="display:flex;gap:6px;">
+        <button class="btn-outline-custom" style="padding:5px 12px;">← Prev</button>
+        <button class="btn-primary-custom" style="padding:5px 14px;">1</button>
+        <button class="btn-outline-custom" style="padding:5px 12px;">2</button>
+        <button class="btn-outline-custom" style="padding:5px 12px;">3</button>
+        <button class="btn-outline-custom" style="padding:5px 12px;">Next →</button>
+      </div>
+    </div>
+  </div>`;
+}
+
+// ─── ADMISSION ───
+function renderAdmission() {
+  const content = document.getElementById('page-content');
+  content.innerHTML = `
+  <div class="page-header"><div class="page-title">Admission Management</div><div class="page-subtitle">Process new admissions and manage documents</div></div>
+  <div class="row g-3">
+    <div class="col-lg-7">
+      <div class="card-custom p-4">
+        <div class="section-title">New Admission Form</div>
+        <div class="row g-3">
+          <div class="col-md-6"><label class="form-label-custom">First Name</label><input class="form-control-custom" placeholder="Enter first name"/></div>
+          <div class="col-md-6"><label class="form-label-custom">Last Name</label><input class="form-control-custom" placeholder="Enter last name"/></div>
+          <div class="col-md-6"><label class="form-label-custom">Email</label><input type="email" class="form-control-custom" placeholder="student@email.com"/></div>
+          <div class="col-md-6"><label class="form-label-custom">Phone</label><input class="form-control-custom" placeholder="+91 XXXXX XXXXX"/></div>
+          <div class="col-md-6"><label class="form-label-custom">Date of Birth</label><input type="date" class="form-control-custom"/></div>
+          <div class="col-md-6"><label class="form-label-custom">Gender</label><select class="form-select-custom"><option>Male</option><option>Female</option><option>Other</option></select></div>
+          <div class="col-12"><label class="form-label-custom">Course Selection</label><select class="form-select-custom"><option>B.E. Computer Science & Engineering</option><option>B.E. Electrical Engineering</option><option>B.Tech Information Technology</option><option>MBA Business Administration</option></select></div>
+          <div class="col-md-6"><label class="form-label-custom">Previous Institution</label><input class="form-control-custom" placeholder="School/College name"/></div>
+          <div class="col-md-6"><label class="form-label-custom">10+2 Percentage</label><input type="number" class="form-control-custom" placeholder="85.5"/></div>
+          <div class="col-12">
+            <label class="form-label-custom">Upload Documents</label>
+            <div class="upload-zone" style="padding:24px;" onclick="showSnack('Document upload opened (demo)','info')">
+              <div>📎 <strong>Upload Documents</strong></div>
+              <div style="font-size:11px;color:var(--text3);margin-top:4px;">10th Marksheet, 12th Marksheet, ID Proof, Photo</div>
+            </div>
+          </div>
+          <div class="col-12">
+            <button class="btn-primary-custom" onclick="showSnack('Admission form submitted successfully!','success')"><i class="bi bi-send"></i> Submit Admission</button>
+            <button class="btn-outline-custom" style="margin-left:8px;" onclick="showSnack('Form cleared','info')"><i class="bi bi-x-circle"></i> Clear</button>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="col-lg-5">
+      <div class="card-custom p-4">
+        <div class="section-title">Admission Status</div>
+        <div style="display:flex;flex-direction:column;gap:10px;">
+          ${[{name:'Riya Sharma',course:'B.E. CS',status:'Approved'},{name:'Vivek Singh',course:'B.Tech IT',status:'Pending'},{name:'Anita Rao',course:'MBA',status:'Review'},{name:'Karan Mehta',course:'B.E. EEE',status:'Approved'}].map(a => `
+          <div style="display:flex;align-items:center;gap:12px;padding:12px;background:var(--surface2);border-radius:10px;">
+            <div class="avatar" style="width:36px;height:36px;font-size:12px;">${a.name.split(' ').map(n=>n[0]).join('')}</div>
+            <div style="flex:1;"><div style="font-weight:600;font-size:13px;">${a.name}</div><div style="font-size:11.5px;color:var(--text3);">${a.course}</div></div>
+            <span class="badge-custom ${a.status==='Approved'?'badge-green':a.status==='Pending'?'badge-yellow':'badge-blue'}">${a.status}</span>
+          </div>`).join('')}
+        </div>
+        <div style="margin-top:16px;display:flex;gap:8px;">
+          <button class="btn-accent-custom" style="flex:1;justify-content:center;" onclick="showSnack('Admission report downloaded','success')"><i class="bi bi-download"></i> Export</button>
+        </div>
+      </div>
+    </div>
+  </div>`;
+}
+
+// ─── RESULTS ───
+function renderResults() {
+  const subjects = [
+    { name:'Data Structures & Algorithms', max:100, obtained:82, grade:'B+' },
+    { name:'Engineering Mathematics III', max:100, obtained:91, grade:'A' },
+    { name:'Computer Networks', max:100, obtained:67, grade:'C+' },
+    { name:'Operating Systems', max:100, obtained:78, grade:'B' },
+    { name:'Database Management Systems', max:100, obtained:85, grade:'A-' },
+  ];
+  const total = subjects.reduce((s,x)=>s+x.obtained,0);
+  const maxTotal = subjects.reduce((s,x)=>s+x.max,0);
+  const content = document.getElementById('page-content');
+  content.innerHTML = `
+  <div class="page-header"><div class="page-title">Result Management</div><div class="page-subtitle">View, publish and manage examination results</div></div>
+  <div class="row g-3">
+    <div class="col-lg-8">
+      <div class="card-custom p-4 mb-3">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+          <div class="section-title" style="margin-bottom:0;">Semester Result – CS21001</div>
+          <div style="display:flex;gap:8px;">
+            <button class="btn-outline-custom" onclick="showSnack('Result published','success')"><i class="bi bi-megaphone"></i> Publish</button>
+            <button class="btn-accent-custom" onclick="showSnack('Mark sheet downloaded!','success')"><i class="bi bi-download"></i> Mark Sheet</button>
+          </div>
+        </div>
+        ${subjects.map(s => `
+        <div class="result-subject-card mb-2">
+          <div style="display:flex;justify-content:space-between;align-items:center;">
+            <div style="font-weight:600;font-size:13.5px;">${s.name}</div>
+            <div style="display:flex;align-items:center;gap:10px;">
+              <span style="font-size:13px;color:var(--text3);">${s.obtained}/${s.max}</span>
+              <span class="badge-custom ${s.obtained>=75?'badge-green':s.obtained>=50?'badge-yellow':'badge-red'}">${s.grade}</span>
+            </div>
+          </div>
+          <div class="result-mark-bar"><div class="result-mark-fill" style="width:${s.obtained}%;background:${s.obtained>=75?'var(--accent)':s.obtained>=50?'#F59E0B':'#EF4444'};"></div></div>
+        </div>`).join('')}
+        <div style="background:var(--surface2);border-radius:10px;padding:14px 18px;margin-top:14px;display:flex;justify-content:space-between;align-items:center;">
+          <div><div style="font-size:12px;color:var(--text3);">TOTAL MARKS</div><div style="font-family:'Outfit',sans-serif;font-size:1.5rem;font-weight:800;color:var(--primary);">${total}/${maxTotal}</div></div>
+          <div><div style="font-size:12px;color:var(--text3);">PERCENTAGE</div><div style="font-family:'Outfit',sans-serif;font-size:1.5rem;font-weight:800;color:var(--accent);">${(total/maxTotal*100).toFixed(1)}%</div></div>
+          <div><div style="font-size:12px;color:var(--text3);">RESULT</div><span class="badge-custom badge-green" style="font-size:14px;padding:6px 14px;">PASS</span></div>
+        </div>
+      </div>
+      <div class="card-custom p-4">
+        <div class="section-title">Enter / Upload Marks</div>
+        <div style="display:flex;gap:10px;margin-bottom:20px;">
+          <button class="btn-primary-custom" onclick="showSnack('Mark entry form opened','info')"><i class="bi bi-keyboard"></i> Enter Marks</button>
+          <button class="btn-outline-custom" onclick="showSnack('Excel upload dialog (demo)','info')"><i class="bi bi-file-excel"></i> Upload Excel</button>
+        </div>
+        <div class="row g-3">
+          <div class="col-md-4"><label class="form-label-custom">Subject</label><select class="form-select-custom"><option>CS401 – DSA</option><option>MA201 – Maths</option></select></div>
+          <div class="col-md-4"><label class="form-label-custom">Student ID</label><input class="form-control-custom" placeholder="CS21001"/></div>
+          <div class="col-md-4"><label class="form-label-custom">Marks Obtained</label><input type="number" class="form-control-custom" placeholder="85"/></div>
+          <div class="col-12"><button class="btn-accent-custom" onclick="showSnack('Marks saved successfully!','success')"><i class="bi bi-save"></i> Save Marks</button></div>
+        </div>
+      </div>
+    </div>
+    <div class="col-lg-4">
+      <div class="card-custom p-4">
+        <div class="section-title">Class Performance</div>
+        <canvas id="chart-result" height="200"></canvas>
+      </div>
+    </div>
+  </div>`;
+  setTimeout(() => {
+    const ctx = document.getElementById('chart-result');
+    if(ctx) {
+      const textColor = isDark ? '#9BA3BB' : '#5A6278';
+      chartInstances['result'] = new Chart(ctx, {
+        type: 'radar',
+        data: {
+          labels: ['DSA','Maths','Networks','OS','DBMS'],
+          datasets: [{
+            label: 'Score', data: [82,91,67,78,85],
+            backgroundColor: isDark ? 'rgba(58,181,74,0.1)' : 'rgba(27,58,107,0.1)',
+            borderColor: isDark ? '#3AB54A' : '#1B3A6B',
+            borderWidth: 2, pointBackgroundColor: isDark ? '#3AB54A' : '#1B3A6B'
+          }]
+        },
+        options: { responsive: true, plugins: { legend: { display: false } }, scales: { r: { ticks: { color: textColor, backdropColor: 'transparent' }, grid: { color: isDark?'#2A3042':'#DDE2EE' }, pointLabels: { color: textColor } } } }
+      });
+    }
+  }, 100);
+}
+
+// ─── DOCUMENTS ───
+function renderDocuments() {
+  const docs = [
+    { name:'CS401 Question Paper Jan 2025.pdf', cat:'Question Papers', size:'245 KB', date:'Today' },
+    { name:'Result_Sem4_CS.xlsx', cat:'Results', size:'128 KB', date:'Yesterday' },
+    { name:'Rahul_Kumar_Marksheet.pdf', cat:'Student Docs', size:'512 KB', date:'2 Jan' },
+    { name:'Faculty_List_2025.docx', cat:'Staff Docs', size:'89 KB', date:'1 Jan' },
+    { name:'Timetable_Jan2025.pdf', cat:'Results', size:'320 KB', date:'Dec 30' },
+  ];
+  const content = document.getElementById('page-content');
+  content.innerHTML = `
+  <div class="page-header"><div class="page-title">Document Management</div><div class="page-subtitle">Upload, organize and access all institutional documents</div></div>
+  <div class="row g-3 mb-4">
+    ${[{label:'Student Docs',icon:'bi-person-badge',col:'blue',count:284},{label:'Staff Docs',icon:'bi-briefcase',col:'green',count:56},{label:'Question Papers',icon:'bi-file-earmark-text',col:'yellow',count:348},{label:'Results',icon:'bi-award',col:'red',count:128}].map(c => `
+    <div class="col-6 col-md-3"><div class="stat-card" onclick="showSnack('Opening ${c.label}','info')" style="cursor:pointer;"><div class="stat-icon ${c.col}"><i class="bi ${c.icon}"></i></div><div><div class="stat-val">${c.count}</div><div class="stat-label">${c.label}</div></div></div></div>`).join('')}
+  </div>
+  <div class="card-custom p-4">
+    <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
+      <div style="display:flex;gap:8px;flex:1;max-width:400px;">
+        <div style="position:relative;flex:1;"><i class="bi bi-search" style="position:absolute;left:12px;top:50%;transform:translateY(-50%);color:var(--text3);"></i><input class="form-control-custom" placeholder="Search documents..." style="padding-left:38px;"/></div>
+        <select class="form-select-custom" style="width:140px;"><option>All Categories</option><option>Student Docs</option><option>Staff Docs</option><option>Question Papers</option><option>Results</option></select>
+      </div>
+      <button class="btn-primary-custom" onclick="showSnack('Upload dialog opened','info')"><i class="bi bi-upload"></i> Upload Document</button>
+    </div>
+    <div style="overflow-x:auto;">
+      <table class="table-custom">
+        <thead><tr><th>Document Name</th><th>Category</th><th>Size</th><th>Date</th><th>Actions</th></tr></thead>
+        <tbody>
+          ${docs.map(d => `<tr>
+            <td><div style="display:flex;align-items:center;gap:10px;"><i class="bi bi-filetype-pdf" style="color:#E53935;font-size:18px;"></i><span style="font-weight:600;">${d.name}</span></div></td>
+            <td><span class="badge-custom badge-blue">${d.cat}</span></td>
+            <td style="color:var(--text3);">${d.size}</td>
+            <td style="color:var(--text3);">${d.date}</td>
+            <td><div style="display:flex;gap:6px;">
+              <button class="btn-outline-custom" style="padding:4px 10px;font-size:11px;" onclick="showSnack('Previewing document','info')"><i class="bi bi-eye"></i></button>
+              <button class="btn-outline-custom" style="padding:4px 10px;font-size:11px;" onclick="showSnack('Document downloaded!','success')"><i class="bi bi-download"></i></button>
+            </div></td>
+          </tr>`).join('')}
+        </tbody>
+      </table>
+    </div>
+  </div>`;
+}
+
+// ─── REPORTS ───
+function renderReports() {
+  const content = document.getElementById('page-content');
+  content.innerHTML = `
+  <div class="page-header"><div class="page-title">Reports & Analytics</div><div class="page-subtitle">Comprehensive academic performance insights</div></div>
+  <div class="row g-3 mb-3">
+    <div class="col-md-3 col-6"><div class="stat-card"><div class="stat-icon green"><i class="bi bi-graph-up-arrow"></i></div><div><div class="stat-val" style="color:var(--accent)">87.4%</div><div class="stat-label">Overall Pass %</div></div></div></div>
+    <div class="col-md-3 col-6"><div class="stat-card"><div class="stat-icon red"><i class="bi bi-graph-down-arrow"></i></div><div><div class="stat-val" style="color:#E53935">12.6%</div><div class="stat-label">Overall Fail %</div></div></div></div>
+    <div class="col-md-3 col-6"><div class="stat-card"><div class="stat-icon blue"><i class="bi bi-star"></i></div><div><div class="stat-val" style="color:var(--primary)">74.2</div><div class="stat-label">Avg Marks</div></div></div></div>
+    <div class="col-md-3 col-6"><div class="stat-card"><div class="stat-icon yellow"><i class="bi bi-calendar-check"></i></div><div><div class="stat-val" style="color:var(--yellow-dark)">92%</div><div class="stat-label">Attendance %</div></div></div></div>
+  </div>
+  <div class="row g-3">
+    <div class="col-md-6"><div class="card-custom p-4"><div class="section-title">Department Performance</div><canvas id="chart-dept" height="200"></canvas></div></div>
+    <div class="col-md-6"><div class="card-custom p-4"><div class="section-title">Subject-wise Pass/Fail</div><canvas id="chart-subject" height="200"></canvas></div></div>
+    <div class="col-md-6"><div class="card-custom p-4"><div class="section-title">Semester Trend</div><canvas id="chart-trend" height="180"></canvas></div></div>
+    <div class="col-md-6"><div class="card-custom p-4"><div class="section-title">Grade Distribution</div><canvas id="chart-grade" height="180"></canvas></div></div>
+  </div>`;
+  setTimeout(() => {
+    const tc = isDark ? '#9BA3BB' : '#5A6278';
+    const gc = isDark ? '#2A3042' : '#DDE2EE';
+    const primary = isDark ? '#3AB54A' : '#1B3A6B';
+    const accent = isDark ? '#F5C518' : '#3AB54A';
+    chartInstances['dept'] = new Chart(document.getElementById('chart-dept'), { type:'bar', data:{ labels:['CS','EEE','Mech','Civil','IT','MBA'], datasets:[{label:'Pass %',data:[89,82,76,85,91,88],backgroundColor:primary,borderRadius:6}] }, options:{responsive:true,plugins:{legend:{labels:{color:tc}}},scales:{x:{ticks:{color:tc},grid:{color:gc}},y:{ticks:{color:tc},grid:{color:gc}}}} });
+    chartInstances['subject'] = new Chart(document.getElementById('chart-subject'), { type:'bar', data:{ labels:['DSA','Maths','Physics','CN','OS'], datasets:[{label:'Pass',data:[88,91,76,83,79],backgroundColor:accent,borderRadius:6},{label:'Fail',data:[12,9,24,17,21],backgroundColor:'#EF4444',borderRadius:6}] }, options:{responsive:true,plugins:{legend:{labels:{color:tc}}},scales:{x:{ticks:{color:tc},grid:{color:gc},stacked:true},y:{ticks:{color:tc},grid:{color:gc},stacked:true}}} });
+    chartInstances['trend'] = new Chart(document.getElementById('chart-trend'), { type:'line', data:{ labels:['Sem1','Sem2','Sem3','Sem4','Sem5','Sem6'], datasets:[{label:'Pass %',data:[80,83,86,87,89,92],borderColor:primary,backgroundColor:'transparent',pointBackgroundColor:primary,tension:0.4}] }, options:{responsive:true,plugins:{legend:{labels:{color:tc}}},scales:{x:{ticks:{color:tc},grid:{color:gc}},y:{ticks:{color:tc},grid:{color:gc}}}} });
+    chartInstances['grade'] = new Chart(document.getElementById('chart-grade'), { type:'doughnut', data:{ labels:['A','B','C','D','F'], datasets:[{data:[22,35,28,10,5],backgroundColor:[accent,primary,'#F59E0B','#6B7280','#EF4444'],borderWidth:0,hoverOffset:6}] }, options:{responsive:true,cutout:'65%',plugins:{legend:{labels:{color:tc}}}} });
+  }, 100);
+}
+
+// ─── COMMUNICATIONS ───
+function renderCommunications() {
+  const content = document.getElementById('page-content');
+  content.innerHTML = `
+  <div class="page-header"><div class="page-title">Communications</div><div class="page-subtitle">Complaints, announcements and notifications</div></div>
+  <div class="row g-3">
+    <div class="col-lg-7">
+      <div class="card-custom p-4 mb-3">
+        <div class="section-title">Announcements</div>
+        <div style="display:flex;flex-direction:column;gap:10px;">
+          ${[{title:'Semester 4 Exams Start Jan 15',msg:'All students are requested to carry their hall tickets and college ID. Exam starts at 9:00 AM sharp.',time:'2 hr ago',type:'yellow'},{title:'Result Published – Semester 3',msg:'Semester 3 results have been published. Students can check their results from the student portal.',time:'1 day ago',type:'green'},{title:'Holiday Notice',msg:'The institute will be closed on Jan 14 for Pongal celebration.',time:'3 days ago',type:'blue'}].map(a => `
+          <div style="padding:14px;background:var(--surface2);border-radius:10px;border-left:4px solid var(--${a.type==='yellow'?'yellow-dark':a.type==='green'?'accent':'primary'});">
+            <div style="font-weight:700;font-size:13.5px;margin-bottom:4px;">${a.title}</div>
+            <div style="font-size:12.5px;color:var(--text2);">${a.msg}</div>
+            <div style="font-size:11px;color:var(--text3);margin-top:6px;">${a.time}</div>
+          </div>`).join('')}
+        </div>
+        <button class="btn-primary-custom" style="margin-top:16px;" onclick="showSnack('Announcement posted!','success')"><i class="bi bi-megaphone"></i> Post Announcement</button>
+      </div>
+    </div>
+    <div class="col-lg-5">
+      <div class="card-custom p-4 mb-3">
+        <div class="section-title">Complaints</div>
+        <div style="display:flex;flex-direction:column;gap:8px;margin-bottom:16px;">
+          ${[{from:'CS21001 – Rahul Kumar',issue:'Result discrepancy in CS401',status:'Pending'},{from:'CS21002 – Priya Sharma',issue:'Hall ticket not received',status:'Resolved'},{from:'EE21010 – Meena Raj',issue:'Attendance mismatch',status:'In Review'}].map(c => `
+          <div style="padding:12px;background:var(--surface2);border-radius:10px;">
+            <div style="display:flex;justify-content:space-between;align-items:flex-start;">
+              <div><div style="font-weight:600;font-size:12.5px;">${c.from}</div><div style="font-size:12px;color:var(--text3);margin-top:2px;">${c.issue}</div></div>
+              <span class="badge-custom ${c.status==='Resolved'?'badge-green':c.status==='Pending'?'badge-yellow':'badge-blue'}">${c.status}</span>
+            </div>
+            <button class="btn-outline-custom" style="padding:4px 10px;font-size:11px;margin-top:8px;" onclick="showSnack('Reply sent','success')"><i class="bi bi-reply"></i> Reply</button>
+          </div>`).join('')}
+        </div>
+        <div class="section-title">Raise Complaint</div>
+        <div class="row g-2">
+          <div class="col-12"><label class="form-label-custom">Subject</label><input class="form-control-custom" placeholder="Brief subject of complaint"/></div>
+          <div class="col-12"><label class="form-label-custom">Description</label><textarea class="form-control-custom" rows="3" placeholder="Describe your complaint..."></textarea></div>
+          <div class="col-12"><button class="btn-accent-custom" onclick="showSnack('Complaint submitted to Principal','success')"><i class="bi bi-send"></i> Submit Complaint</button></div>
+        </div>
+      </div>
+    </div>
+  </div>`;
+}
+
+// ─── SETTINGS ───
+function renderSettings() {
+  const content = document.getElementById('page-content');
+  content.innerHTML = `
+  <div class="page-header"><div class="page-title">Settings</div><div class="page-subtitle">Manage your profile, security and system preferences</div></div>
+  <div class="row g-3">
+    <div class="col-lg-6">
+      <div class="card-custom p-4 mb-3">
+        <div class="section-title">Profile Settings</div>
+        <div style="display:flex;align-items:center;gap:16px;margin-bottom:20px;">
+          <div class="avatar" style="width:60px;height:60px;font-size:20px;">${ROLES[currentRole]?.abbr||'AD'}</div>
+          <div><div style="font-weight:700;font-size:16px;">${currentRole}</div><div style="font-size:13px;color:var(--text3);">qgen.institution.edu.in</div></div>
+          <button class="btn-outline-custom" style="margin-left:auto;" onclick="showSnack('Photo upload opened','info')"><i class="bi bi-camera"></i> Change Photo</button>
+        </div>
+        <div class="row g-3">
+          <div class="col-md-6"><label class="form-label-custom">First Name</label><input class="form-control-custom" value="${currentRole}"/></div>
+          <div class="col-md-6"><label class="form-label-custom">Employee ID</label><input class="form-control-custom" value="QG${Math.floor(1000+Math.random()*9000)}"/></div>
+          <div class="col-12"><label class="form-label-custom">Email</label><input class="form-control-custom" value="admin@qgen.edu.in"/></div>
+          <div class="col-12"><button class="btn-primary-custom" onclick="showSnack('Profile updated!','success')"><i class="bi bi-save"></i> Save Changes</button></div>
+        </div>
+      </div>
+    </div>
+    <div class="col-lg-6">
+      <div class="card-custom p-4 mb-3">
+        <div class="section-title">Change Password</div>
+        <div class="row g-3">
+          <div class="col-12"><label class="form-label-custom">Current Password</label><input type="password" class="form-control-custom" placeholder="••••••••"/></div>
+          <div class="col-12"><label class="form-label-custom">New Password</label><input type="password" class="form-control-custom" placeholder="••••••••"/></div>
+          <div class="col-12"><label class="form-label-custom">Confirm Password</label><input type="password" class="form-control-custom" placeholder="••••••••"/></div>
+          <div class="col-12"><button class="btn-accent-custom" onclick="showSnack('Password changed successfully!','success')"><i class="bi bi-shield-lock"></i> Update Password</button></div>
+        </div>
+      </div>
+      <div class="card-custom p-4">
+        <div class="section-title">System Preferences</div>
+        <div style="display:flex;flex-direction:column;gap:14px;">
+          ${[{label:'Dark Mode',desc:'Switch to dark theme'},{label:'Email Notifications',desc:'Receive email alerts'},{label:'SMS Alerts',desc:'Get SMS for exams'},{label:'Auto Backup',desc:'Daily data backup'}].map((s,i) => `
+          <div style="display:flex;justify-content:space-between;align-items:center;">
+            <div><div style="font-weight:600;font-size:13.5px;">${s.label}</div><div style="font-size:12px;color:var(--text3);">${s.desc}</div></div>
+            <div style="position:relative;width:44px;height:24px;cursor:pointer;" onclick="this.classList.toggle('on');showSnack('${s.label} toggled','info')">
+              <div style="position:absolute;inset:0;background:var(--border);border-radius:99px;transition:background 0.3s;"></div>
+              <div style="position:absolute;width:18px;height:18px;background:#fff;border-radius:50%;top:3px;left:3px;transition:left 0.3s;box-shadow:0 1px 3px rgba(0,0,0,0.2);"></div>
+            </div>
+          </div>`).join('')}
+        </div>
+      </div>
+    </div>
+  </div>`;
+}
+</script>
+</body>
+</html>
