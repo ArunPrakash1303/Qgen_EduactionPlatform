@@ -35,13 +35,15 @@ function Login({ onLogin, isDark, toggleTheme }) {
       exit={{ opacity: 0 }}
     >
       <div className="login-left">
-        <motion.div className="login-brand-icon" initial={{ scale: 0 }} animate={{ scale: 1 }} transition={{ delay: 0.2 }}>🎓</motion.div>
-        <div className="login-brand-name">
+        <motion.div className="login-brand-icon" initial={{ scale: 0 }} animate={{ scale: 1 }} transition={{ delay: 0.2 }}>
+          <img src="./src/assets/QgenLogo.png" alt="QGen Logo" style={{ width: '380px', height: 'auto', objectFit: 'contain' }} />
+        </motion.div>
+        <div className="login-brand-name" style={{ display: 'none' }}>
           <span className="q" style={{ color: isDark ? '#3AB54A' : '#fff' }}>Q</span>
           <span className="gen" style={{ color: isDark ? '#F5C518' : 'rgba(255,255,255,0.85)' }}>Gen</span>
         </div>
-        <div className="login-brand-tagline">Question Paper Generator & Exam Scheduler</div>
-        <div style={{ marginTop: '40px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
+        {/* <div className="login-brand-tagline">Question Paper Generator & Exam Scheduler</div> */}
+        <div style={{ marginTop: '5px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
           <div className="login-feature"><i className="bi bi-file-earmark-check"></i> AI-Powered Question Generation</div>
           <div className="login-feature"><i className="bi bi-calendar3"></i> Smart Exam Scheduling</div>
           <div className="login-feature"><i className="bi bi-people"></i> Complete Student Management</div>
@@ -52,9 +54,8 @@ function Login({ onLogin, isDark, toggleTheme }) {
       
       <div className="login-right">
         <div style={{ position: 'absolute', top: '20px', right: '20px' }}>
-          <button className="theme-toggle" onClick={toggleTheme}>
+          <button className="topbar-btn theme-toggle" onClick={toggleTheme}>
             <i className={isDark ? "bi bi-sun" : "bi bi-moon-stars"}></i>
-            <span>{isDark ? 'Light' : 'Dark'}</span>
           </button>
         </div>
         <motion.div 
@@ -63,7 +64,7 @@ function Login({ onLogin, isDark, toggleTheme }) {
           animate={{ x: 0, opacity: 1 }}
           transition={{ duration: 0.5, delay: 0.1 }}
         >
-          <div className="login-title">Welcome back 👋</div>
+          <div className="login-title">Welcome back</div>
           <div className="login-subtitle">Sign in to your Qgen account</div>
           
           <div className="login-form-group">
