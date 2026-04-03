@@ -17,7 +17,7 @@
   --radius: 16px;
   --radius-lg: 24px;
   --sidebar-w: 270px;
-  --navbar-h: 76px;
+  --navbar-h: 74px;
   --transition: 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
 }
 [data-theme="dark"] {
