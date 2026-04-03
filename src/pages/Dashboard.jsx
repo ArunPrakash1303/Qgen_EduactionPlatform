@@ -193,7 +193,7 @@ export default function Dashboard({ user, isDark }) {
   return (
     <>
       <div className="page-header">
-        <div className="page-title">Welcome back, {user.name} 👋</div>
+        {/* <div className="page-title">Welcome back, {user.name}</div> */}
         <div className="page-subtitle">Here is your customized {user.name} dashboard overview.</div>
       </div>
       
